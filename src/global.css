@@ -1,2 +1,20 @@
-/* scrollbar */
-@import 'simplebar-react/dist/simplebar.min.css';
+/* Override simplebar default scrollbar colors */
+
+/* scrollbar track */
+.simplebar-track.simplebar-vertical {
+  background: #ffe5e5; /* light red background for track */
+  border-radius: 10px;
+  width: 10px; /* adjust thickness */
+}
+
+/* scrollbar handle (thumb) */
+.simplebar-scrollbar:before {
+  background: #e60000 !important; /* red thumb */
+  border-radius: 10px;
+  opacity: 1 !important; /* make sure it's visible */
+}
+
+/* hover effect */
+.simplebar-scrollbar:hover:before {
+  background: #b30000 !important; /* darker red on hover */
+}
