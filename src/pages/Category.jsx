@@ -1,7 +1,8 @@
 /* eslint-disable perfectionist/sort-named-imports */
 import axios from "axios";
-import { Field, Formik,Form } from "formik";
+import { Field, Formik, Form } from "formik";
 import React, { useState, useEffect } from "react";
+import { MdEdit, MdDelete, MdClear } from "react-icons/md";
 
 import {
   Alert,
@@ -19,15 +20,16 @@ import {
   TableRow,
   TextField,
   Typography,
+  Pagination,
 } from "@mui/material";
 
 
-const API_URL = "https://minutosa-2.onrender.com/api/category";
 
-// Cloudinary configuration - Replace with your actual values
+const API_URL = "https://backend.minutos.shop/api/category";
+
+// Cloudinary configuration
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
- // Replace with your upload preset
-const CLOUDINARY_CLOUD_NAME = "de4ks8mkh"; // Replace with your cloud name
+const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
 
 export default function Category() {
   const [categories, setCategories] = useState([]);
@@ -35,6 +37,10 @@ export default function Category() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5;
 
   // Fetch categories
   const fetchCategories = async () => {
@@ -57,7 +63,7 @@ export default function Category() {
   // Upload image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-      throw new Error("Cloudinary configuration is missing. Please set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET.");
+      throw new Error("Cloudinary configuration is missing.");
     }
 
     const formData = new FormData();
@@ -69,9 +75,7 @@ export default function Category() {
         `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
       return response.data.secure_url;
@@ -86,13 +90,11 @@ export default function Category() {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       setSnackbar({ open: true, message: "Please select a valid image file", severity: "error" });
       return;
     }
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       setSnackbar({ open: true, message: "File size should be less than 5MB", severity: "error" });
       return;
@@ -115,7 +117,7 @@ export default function Category() {
   const handleSubmit = async (values, { resetForm }) => {
     try {
       if (editingCategory) {
-        await axios.put(`${API_URL}/update/${editingCategory._id}`, values);
+        await axios.put(`${API_URL}/updatecategories/${editingCategory._id}`, values);
         setSnackbar({ open: true, message: "Category updated successfully", severity: "success" });
       } else {
         await axios.post(`${API_URL}/categories`, values);
@@ -134,7 +136,7 @@ export default function Category() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this category?")) return;
     try {
-      await axios.delete(`${API_URL}/delete/${id}`);
+      await axios.delete(`${API_URL}/deletecategories/${id}`);
       setSnackbar({ open: true, message: "Category deleted", severity: "success" });
       fetchCategories();
     } catch (error) {
@@ -143,16 +145,25 @@ export default function Category() {
     }
   };
 
+  // Pagination logic
+  const handleChangePage = (event, value) => {
+    setPage(value);
+  };
+
+  const paginatedCategories = categories.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
         Category Management
       </Typography>
 
-      {/* Configuration Alert */}
       {(!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Please configure your Cloudinary settings (CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET) to enable image uploads.
+          Please configure your Cloudinary settings.
         </Alert>
       )}
 
@@ -163,13 +174,11 @@ export default function Category() {
           image: editingCategory?.image || "",
         }}
         enableReinitialize
-        // validate={validateCategory}
         onSubmit={handleSubmit}
       >
         {({ errors, touched, resetForm, setFieldValue, values }) => (
           <Form style={{ marginBottom: "2rem" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
-              {/* Name Field */}
               <Field
                 as={TextField}
                 name="name"
@@ -179,11 +188,9 @@ export default function Category() {
                 helperText={touched.name && errors.name}
               />
 
-              {/* Image Upload Section */}
+              {/* Image Upload */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Typography variant="subtitle1">Category Image</Typography>
-                
-                {/* Image URL Field */}
                 <Field
                   as={TextField}
                   name="image"
@@ -192,13 +199,10 @@ export default function Category() {
                   error={touched.image && Boolean(errors.image)}
                   helperText={touched.image && errors.image}
                 />
-
-                {/* Upload Button */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <Button
                     component="label"
                     variant="outlined"
-                    // startIcon={<CloudUploadIcon />}
                     disabled={uploading || (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET)}
                   >
                     {uploading ? "Uploading..." : "Upload Image"}
@@ -212,7 +216,6 @@ export default function Category() {
                   {uploading && <CircularProgress size={24} />}
                 </Box>
 
-                {/* Image Preview */}
                 {values.image && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="subtitle2" gutterBottom>
@@ -238,12 +241,7 @@ export default function Category() {
 
               {/* Form Actions */}
               <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                <Button 
-                  type="submit" 
-                  variant="contained" 
-                  color="primary"
-                  disabled={uploading}
-                >
+                <Button type="submit" variant="contained" color="primary" disabled={uploading}>
                   {editingCategory ? "Update" : "Add"}
                 </Button>
                 {editingCategory && (
@@ -254,7 +252,7 @@ export default function Category() {
                       resetForm();
                     }}
                   >
-                    {/* <ClearIcon /> */}
+                    <MdClear />
                   </IconButton>
                 )}
               </Box>
@@ -263,54 +261,69 @@ export default function Category() {
         )}
       </Formik>
 
-      {/* Loading */}
+      {/* Table */}
       {loading ? (
         <Box display="flex" justifyContent="center" p={3}>
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell><b>Name</b></TableCell>
-                <TableCell><b>Image</b></TableCell>
-                <TableCell><b>Actions</b></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {categories.map((cat) => (
-                <TableRow key={cat._id}>
-                  <TableCell>{cat.name}</TableCell>
-                  <TableCell>
-                    <img 
-                      src={cat.image} 
-                      alt={cat.name} 
-                      width="80" 
-                      height="80"
-                      style={{ objectFit: "cover", borderRadius: "4px" }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton color="primary" onClick={() => setEditingCategory(cat)}>
-                      {/* <EditIcon /> */}
-                    </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(cat._id)}>
-                      {/* <DeleteIcon /> */}
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {categories.length === 0 && (
+        <>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={3} align="center">
-                    No categories found
-                  </TableCell>
+                  <TableCell><b>Name</b></TableCell>
+                  <TableCell><b>Image</b></TableCell>
+                  <TableCell><b>Actions</b></TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {paginatedCategories.map((cat) => (
+                  <TableRow key={cat._id}>
+                    <TableCell>{cat.name}</TableCell>
+                    <TableCell>
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        width="80"
+                        height="80"
+                        style={{ objectFit: "cover", borderRadius: "4px" }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <IconButton color="primary" onClick={() => setEditingCategory(cat)}>
+                        <MdEdit />
+                      </IconButton>
+                      <IconButton color="error" onClick={() => handleDelete(cat._id)}>
+                        <MdDelete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {categories.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      No categories found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Pagination */}
+          <Box display="flex" justifyContent="center" mt={2}>
+            <Pagination
+              count={Math.ceil(categories.length / rowsPerPage)}
+              page={page}
+              onChange={handleChangePage}
+              color="primary"
+            />
+          </Box>
+        </>
       )}
 
       {/* Snackbar */}
