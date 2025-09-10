@@ -26,7 +26,6 @@ import {
   FormControl,
 } from "@mui/material";
 
-
 // API endpoints
 const SUBCATEGORY_API = "https://backend.minutos.shop/api/subcategory";
 const CATEGORY_API = "https://backend.minutos.shop/api/category/getcategories";
@@ -164,7 +163,7 @@ export default function SubCategory() {
       <Formik
         initialValues={{
           name: editingSub?.name || "",
-          category: editingSub?.category || "",
+          category: editingSub?.category?._id || "", // ✅ FIXED (category as ID not object)
           image: editingSub?.image || "",
         }}
         enableReinitialize
@@ -259,9 +258,7 @@ export default function SubCategory() {
                 {paginatedSubs.map((sub) => (
                   <TableRow key={sub._id}>
                     <TableCell>{sub.name}</TableCell>
-                    <TableCell>
-                      {categories.find((cat) => cat._id === sub.category)?.name || "N/A"}
-                    </TableCell>
+                    <TableCell>{sub.category?.name || "N/A"}</TableCell>
                     <TableCell>
                       <img
                         src={sub.image}
