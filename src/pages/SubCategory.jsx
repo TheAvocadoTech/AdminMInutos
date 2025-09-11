@@ -44,7 +44,7 @@ export default function SubCategory() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const rowsPerPage = 5;
+  const rowsPerPage = 10;
 
   // Fetch categories
   const fetchCategories = async () => {
