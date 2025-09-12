@@ -21,9 +21,9 @@ import {
   CardMedia,
 } from "@mui/material";
 
-const API_URL = "https://backend.minutos.shop/api/product";
-const CATEGORY_API = "https://backend.minutos.shop/api/category/getcategories";
-const SUBCATEGORY_API = "https://backend.minutos.shop//api/subcategory/";
+const API_URL = "http://localhost:8000/api/product";
+const CATEGORY_API = "http://localhost:8000/api/category/getcategories";
+const SUBCATEGORY_API = "http://localhost:8000/api/subcategory/";
 
 // Cloudinary configuration
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
