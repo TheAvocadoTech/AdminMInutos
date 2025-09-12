@@ -14,6 +14,7 @@ export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const Category = lazy(() => import('src/pages/Category'));
 export const Banner=lazy(()=>import('src/pages/AdsBanner'))
 export const SubCategory=lazy(()=>import('src/pages/SubCategory'))
+export const Product =lazy(()=>import('src/pages/ProductData'))
 // ----------------------------------------------------------------------
 
 export default function Router() {
@@ -33,7 +34,7 @@ export default function Router() {
         { path: 'Category', element: <Category /> },
         {path:'subcategory',element:<SubCategory/>},
 
-        { path: 'products', element: <ProductsPage /> },
+        { path: 'products', element: <Product/> },
         { path: 'blog', element: <BlogPage /> },
       ],
     },
