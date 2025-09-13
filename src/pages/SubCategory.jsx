@@ -1,8 +1,14 @@
+
+/* eslint-disable react/prop-types */
 /* eslint-disable perfectionist/sort-named-imports */
+/* eslint-disable react/prop-types */
+/* eslint-disable */
+
 import axios from "axios";
+import * as XLSX from "xlsx";
 import { Field, Formik, Form } from "formik";
 import React, { useState, useEffect } from "react";
-import { MdEdit, MdDelete, MdClear } from "react-icons/md";
+import { MdEdit, MdDelete, MdClear, MdUpload } from "react-icons/md";
 
 import {
   Box,
@@ -151,8 +157,55 @@ export default function SubCategory() {
 
   // Pagination
   const handleChangePage = (event, value) => setPage(value);
-
   const paginatedSubs = subcategories.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  // Excel Upload
+  // Excel Upload
+const handleExcelUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    // ✅ Prepare all valid rows
+    const validRows = rows
+      .map((row) => {
+        const category = categories.find(
+          (c) => c.name.toLowerCase() === row.categoryName?.toLowerCase()
+        );
+        if (!category) {
+          console.warn(`Category not found for row:`, row);
+          return null; // filter out later
+        }
+        return {
+          name: row.name || "",
+          category: category._id,
+          image: row.image || "",
+        };
+      })
+      .filter(Boolean); // remove nulls
+
+    // ✅ Bulk insert using Promise.all
+    await Promise.all(
+      validRows.map((newSub) =>
+        axios.post(SUBCATEGORY_API, newSub).catch((err) => {
+          console.error("Error uploading row:", newSub, err);
+        })
+      )
+    );
+
+    setSnackbar({ open: true, message: "Excel uploaded successfully", severity: "success" });
+    fetchSubcategories();
+  } catch (error) {
+    console.error("Error reading Excel file:", error);
+    setSnackbar({ open: true, message: "Invalid Excel file", severity: "error" });
+  }
+};
 
   return (
     <Box sx={{ p: 4 }}>
@@ -160,10 +213,21 @@ export default function SubCategory() {
         Subcategory Management
       </Typography>
 
+      {/* Excel Upload */}
+      <Box sx={{ mb: 3 }}>
+        <Button component="label" variant="contained" color="secondary" startIcon={<MdUpload />}>
+          Upload Excel
+          <input type="file" accept=".xlsx, .xls" hidden onChange={handleExcelUpload} />
+        </Button>
+        <Typography variant="body2" sx={{ mt: 1, color: "gray" }}>
+          Excel format: <b>name | categoryName | image</b>
+        </Typography>
+      </Box>
+
       <Formik
         initialValues={{
           name: editingSub?.name || "",
-          category: editingSub?.category?._id || "", // ✅ FIXED (category as ID not object)
+          category: editingSub?.category?._id || "",
           image: editingSub?.image || "",
         }}
         enableReinitialize

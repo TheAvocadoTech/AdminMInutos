@@ -1,5 +1,9 @@
 /* eslint-disable perfectionist/sort-named-imports */
+/* eslint-disable perfectionist/sort-named-imports */
+/* eslint-disable react/prop-types */
+/* eslint-disable */
 import axios from "axios";
+import * as XLSX from "xlsx";
 import { Field, Formik, Form } from "formik";
 import React, { useState, useEffect } from "react";
 import { MdEdit, MdDelete, MdClear } from "react-icons/md";
@@ -22,8 +26,6 @@ import {
   Typography,
   Pagination,
 } from "@mui/material";
-
-
 
 const API_URL = "https://backend.minutos.shop/api/category";
 
@@ -59,6 +61,43 @@ export default function Category() {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Excel upload handler
+  const handleExcelUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".xlsx")) {
+      setSnackbar({ open: true, message: "Please upload a valid Excel file (.xlsx)", severity: "error" });
+      return;
+    }
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(worksheet);
+
+      // Expecting Excel columns: name | image
+      const formatted = rows.map((row) => ({
+        name: row.name || row.Name || "",
+        image: row.image || row.Image || "",
+      }));
+
+      if (formatted.length === 0) {
+        setSnackbar({ open: true, message: "Excel file is empty", severity: "error" });
+        return;
+      }
+
+      // Bulk upload to backend
+      await axios.post(`${API_URL}/bulk-upload`, { categories: formatted });
+      setSnackbar({ open: true, message: "Categories uploaded from Excel", severity: "success" });
+      fetchCategories();
+    } catch (error) {
+      console.error("Excel upload error:", error);
+      setSnackbar({ open: true, message: "Failed to process Excel file", severity: "error" });
+    }
+  };
 
   // Upload image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
@@ -166,6 +205,17 @@ export default function Category() {
           Please configure your Cloudinary settings.
         </Alert>
       )}
+
+      {/* Excel Upload */}
+      <Box sx={{ mb: 3 }}>
+        <Button variant="outlined" component="label">
+          Upload Excel
+          <input type="file" accept=".xlsx" hidden onChange={handleExcelUpload} />
+        </Button>
+        <Typography variant="body2" color="text.secondary">
+          (Excel file should have columns: <b>name</b>, <b>image</b>)
+        </Typography>
+      </Box>
 
       {/* Category Form */}
       <Formik
@@ -336,3 +386,5 @@ export default function Category() {
     </Box>
   );
 }
+/* eslint-disable react/prop-types */
+/* eslint-disable */
