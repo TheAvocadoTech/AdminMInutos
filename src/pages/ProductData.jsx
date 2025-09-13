@@ -193,14 +193,14 @@ export default function ProductData() {
       <Typography
         variant="h4"
         gutterBottom
-        sx={{ mb: 4, color: "primary.main", fontWeight: "bold" }}
+        sx={{ mb: 4, color: "black", fontWeight: "bold" }}
       >
         Product Management
       </Typography>
 
       {/* ✅ Bulk Excel Upload */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom color="primary">
+        <Typography variant="h6" gutterBottom color="red">
           Bulk Upload via Excel
         </Typography>
         <Button component="label" variant="outlined" fullWidth sx={{ mb: 2 }}>
@@ -256,7 +256,7 @@ export default function ProductData() {
               {/* Left */}
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
+                  <Typography variant="h6" color="red" gutterBottom>
                     Product Info
                   </Typography>
                   <Grid container spacing={2}>
@@ -366,7 +366,7 @@ export default function ProductData() {
               {/* Right */}
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
+                  <Typography variant="h6" color="red" gutterBottom>
                     Images
                   </Typography>
                   <FieldArray name="images">
