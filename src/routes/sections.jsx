@@ -15,6 +15,7 @@ export const Category = lazy(() => import('src/pages/Category'));
 export const Banner=lazy(()=>import('src/pages/AdsBanner'))
 export const SubCategory=lazy(()=>import('src/pages/SubCategory'))
 export const Product =lazy(()=>import('src/pages/ProductData'))
+export const OrderPage=lazy(()=>import('src/sections/user/view/order-page'))
 // ----------------------------------------------------------------------
 
 export default function Router() {
@@ -35,6 +36,7 @@ export default function Router() {
         {path:'subcategory',element:<SubCategory/>},
 
         { path: 'products', element: <Product/> },
+        {path:'order', element:<OrderPage/>},
         { path: 'blog', element: <BlogPage /> },
       ],
     },
