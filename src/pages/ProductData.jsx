@@ -144,7 +144,7 @@ export default function ProductData() {
         return;
       }
 
-      await axios.post(`${API_URL}/bulk`, { products });
+      await axios.post(`${API_URL}/bulk-upload`, { products });
       showSnackbar("Products uploaded successfully from Excel");
     } catch (err) {
       console.error("Excel upload error:", err);
