@@ -17,7 +17,7 @@ import {
   Chip,
 } from "@mui/material";
 
-const BANNER_API_URL = "https://backend.minutos.shop/api/banner";
+const BANNER_API_URL = "https://backend.minutos.shop/api/ads";
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
 const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
 
