@@ -23,6 +23,7 @@ import {
   CardContent,
   CardMedia,
 } from "@mui/material";
+import ExcelUploadComponent from "./ExcelFile";
 
 const API_URL = "https://backend.minutos.shop/api/product";
 const CATEGORY_API = "https://backend.minutos.shop/api/category/getcategories";
@@ -109,50 +110,78 @@ export default function ProductData() {
   };
 
   // ✅ Excel upload (bulk products)
-  const handleExcelUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet);
+ const handleExcelUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
 
-      const products = rows.map((row, i) => ({
-        name: row["Name"]?.trim() || `Unnamed-${i + 1}`,
-        productName: row["Product Name"] || "",
-        category: row["Category ID"] ? [row["Category ID"]] : [],
-        subCategory: row["Sub Category ID"] ? [row["Sub Category ID"]] : [],
-        unit: row["Unit"] || "",
-        pack: row["Pack"] || "",
-        description: row["Description"] || "",
-        stock: Number(row["Stock"] || 0),
-        originalPrice: Number(row["Original Price"] || 0),
-        discountedMRP: Number(row["Discounted MRP"] || 0),
-        rating: Number(row["Rating"] || 0),
-        images: row["Images"]
-          ? row["Images"].split(",").map((u) => u.trim())
-          : [],
-        more_details: {
-          brand: row["Brand"] || "",
-          expiry: row["Expiry"] || "",
-        },
-      }));
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
 
-      if (!products.length) {
-        showSnackbar("Excel file empty or invalid", "warning");
-        return;
-      }
-
-      await axios.post(`${API_URL}/bulk-upload`, { products });
-      showSnackbar("Products uploaded successfully from Excel");
-    } catch (err) {
-      console.error("Excel upload error:", err);
-      showSnackbar("Failed to process Excel", "error");
-    } finally {
-      event.target.value = "";
+    if (!rows.length) {
+      showSnackbar("Excel file empty or invalid", "warning");
+      return;
     }
+
+    // Create mapping name -> full object from fetched categories/subcategories
+    const categoryMap = {};
+    categories.forEach((cat) => {
+      categoryMap[cat.name.trim().toLowerCase()] = { _id: cat._id, name: cat.name };
+    });
+
+    const subCategoryMap = {};
+    subCategories.forEach((sub) => {
+      subCategoryMap[sub.name.trim().toLowerCase()] = { _id: sub._id, name: sub.name };
+    });
+
+    const products = rows.map((row, i) => {
+  const categoryName = row["Category Name"]?.trim().toLowerCase();
+  const subCategoryName = row["Sub Category Name"]?.trim().toLowerCase();
+
+  const categoryObj = categoryMap[categoryName];
+  const subCategoryObj = subCategoryMap[subCategoryName];
+
+  if (!categoryObj) {
+    console.warn(`Category not found for product: ${row["Name"]}`);
+  }
+  if (!subCategoryObj) {
+    console.warn(`SubCategory not found for product: ${row["Name"]}`);
+  }
+
+  return {
+    name: row["Name"]?.trim() || `Unnamed-${i + 1}`,
+    productName: row["Product Name"] || "",
+    category: categoryObj ? [categoryObj] : [],
+    subCategory: subCategoryObj ? [subCategoryObj] : [],
+    unit: row["Unit"] || "",
+    pack: row["Pack"] || "",
+    description: row["Description"] || "",
+    stock: Number(row["Stock"] || 0),
+    originalPrice: Number(row["Original Price"] || 0),
+    discountedMRP: Number(row["Discounted MRP"] || 0),
+    rating: Number(row["Rating"] || 0),
+    images: row["Images"]
+      ? row["Images"].split(",").map((u) => u.trim())
+      : [],
+    more_details: {
+      brand: row["Brand"] || "",
+      expiry: row["Expiry"] || "",
+    },
   };
+});
+
+    await axios.post(`${API_URL}/bulk-upload`, { products });
+    showSnackbar("Products uploaded successfully from Excel");
+  } catch (err) {
+    console.error("Excel upload error:", err);
+    showSnackbar("Failed to process Excel", "error");
+  } finally {
+    event.target.value = "";
+  }
+};
+
 
   // ✅ Submit new product
   const handleSubmit = async (values, { resetForm, setSubmitting }) => {
@@ -197,6 +226,8 @@ export default function ProductData() {
       >
         Product Management
       </Typography>
+
+      <ExcelUploadComponent/>
 
       {/* ✅ Bulk Excel Upload */}
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
