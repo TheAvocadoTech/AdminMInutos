@@ -6,7 +6,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import { Field, Formik, Form } from "formik";
 import React, { useState, useEffect } from "react";
-import { MdEdit, MdDelete, MdClear } from "react-icons/md";
+import { MdEdit, MdDelete, MdClear, MdSearch } from "react-icons/md";
 
 import {
   Alert,
@@ -14,6 +14,7 @@ import {
   Button,
   CircularProgress,
   IconButton,
+  InputAdornment,
   Paper,
   Snackbar,
   Table,
@@ -26,6 +27,7 @@ import {
   Typography,
   Pagination,
 } from "@mui/material";
+import CSVUploader from "./CategoryCsv";
 
 const API_URL = "https://backend.minutos.shop/api/category";
 
@@ -35,10 +37,12 @@ const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
 
 export default function Category() {
   const [categories, setCategories] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
   const [editingCategory, setEditingCategory] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -50,6 +54,7 @@ export default function Category() {
     try {
       const res = await axios.get(`${API_URL}/getcategories`);
       setCategories(res.data.categories || []);
+      setFilteredCategories(res.data.categories || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
       setSnackbar({ open: true, message: "Error fetching categories", severity: "error" });
@@ -62,43 +67,22 @@ export default function Category() {
     fetchCategories();
   }, []);
 
+  // Filter categories based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredCategories(categories);
+      setPage(1); // Reset to first page when search is cleared
+    } else {
+      const filtered = categories.filter(category =>
+        category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredCategories(filtered);
+      setPage(1); // Reset to first page when searching
+    }
+  }, [searchTerm, categories]);
+
   // Excel upload handler
-  const handleExcelUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.name.endsWith(".xlsx")) {
-      setSnackbar({ open: true, message: "Please upload a valid Excel file (.xlsx)", severity: "error" });
-      return;
-    }
-
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(worksheet);
-
-      // Expecting Excel columns: name | image
-      const formatted = rows.map((row) => ({
-        name: row.name || row.Name || "",
-        image: row.image || row.Image || "",
-      }));
-
-      if (formatted.length === 0) {
-        setSnackbar({ open: true, message: "Excel file is empty", severity: "error" });
-        return;
-      }
-
-      // Bulk upload to backend
-      await axios.post(`${API_URL}/bulk-upload`, { categories: formatted });
-      setSnackbar({ open: true, message: "Categories uploaded from Excel", severity: "success" });
-      fetchCategories();
-    } catch (error) {
-      console.error("Excel upload error:", error);
-      setSnackbar({ open: true, message: "Failed to process Excel file", severity: "error" });
-    }
-  };
-
+  
   // Upload image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
@@ -189,7 +173,7 @@ export default function Category() {
     setPage(value);
   };
 
-  const paginatedCategories = categories.slice(
+  const paginatedCategories = filteredCategories.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
   );
@@ -208,13 +192,52 @@ export default function Category() {
 
       {/* Excel Upload */}
       <Box sx={{ mb: 3 }}>
-        <Button variant="outlined" component="label">
-          Upload Excel
-          <input type="file" accept=".xlsx" hidden onChange={handleExcelUpload} />
-        </Button>
-        <Typography variant="body2" color="text.secondary">
-          (Excel file should have columns: <b>name</b>, <b>image</b>)
-        </Typography>
+        <CSVUploader />
+
+        {/* Hint Box */}
+        <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+          <Typography variant="body2">
+            💡 You can upload multiple products at once using a CSV file.  
+            Make sure your CSV includes columns like <b>Name</b>, <b>Category</b>, <b>Price</b>, and <b>Image URL</b>.  
+            <br />
+            Example:  
+            <code>Product Name, Category, Price, Image URL</code>
+          </Typography>
+        </Alert>
+      </Box>
+
+      {/* Search Filter */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search categories by name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <MdSearch />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => setSearchTerm("")}
+                  edge="end"
+                >
+                  <MdClear />
+                </IconButton>
+              </InputAdornment>
+            )
+          }}
+        />
+        {searchTerm && (
+          <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+            Showing {filteredCategories.length} of {categories.length} categories
+          </Typography>
+        )}
       </Box>
 
       {/* Category Form */}
@@ -353,10 +376,10 @@ export default function Category() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {categories.length === 0 && (
+                {filteredCategories.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={3} align="center">
-                      No categories found
+                      {searchTerm ? "No categories found matching your search" : "No categories found"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -365,14 +388,16 @@ export default function Category() {
           </TableContainer>
 
           {/* Pagination */}
-          <Box display="flex" justifyContent="center" mt={2}>
-            <Pagination
-              count={Math.ceil(categories.length / rowsPerPage)}
-              page={page}
-              onChange={handleChangePage}
-              color="primary"
-            />
-          </Box>
+          {filteredCategories.length > 0 && (
+            <Box display="flex" justifyContent="center" mt={2}>
+              <Pagination
+                count={Math.ceil(filteredCategories.length / rowsPerPage)}
+                page={page}
+                onChange={handleChangePage}
+                color="primary"
+              />
+            </Box>
+          )}
         </>
       )}
 
@@ -386,5 +411,3 @@ export default function Category() {
     </Box>
   );
 }
-/* eslint-disable react/prop-types */
-/* eslint-disable */

@@ -1,4 +1,3 @@
-
 /* eslint-disable react/prop-types */
 /* eslint-disable perfectionist/sort-named-imports */
 /* eslint-disable react/prop-types */
@@ -8,7 +7,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import { Field, Formik, Form } from "formik";
 import React, { useState, useEffect } from "react";
-import { MdEdit, MdDelete, MdClear, MdUpload } from "react-icons/md";
+import { MdEdit, MdDelete, MdClear } from "react-icons/md";
 
 import {
   Box,
@@ -30,7 +29,9 @@ import {
   Select,
   InputLabel,
   FormControl,
+  Alert,
 } from "@mui/material";
+import CSVUploaderSub from "./SubCategoryCSv";
 
 // API endpoints
 const SUBCATEGORY_API = "https://backend.minutos.shop/api/subcategory";
@@ -47,6 +48,7 @@ export default function SubCategory() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -157,55 +159,16 @@ export default function SubCategory() {
 
   // Pagination
   const handleChangePage = (event, value) => setPage(value);
-  const paginatedSubs = subcategories.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  // Excel Upload
-  // Excel Upload
-const handleExcelUpload = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+  // Filter subcategories based on search query
+  const filteredSubs = subcategories.filter(
+    (sub) =>
+      sub.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sub.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  try {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet);
-
-    // ✅ Prepare all valid rows
-    const validRows = rows
-      .map((row) => {
-        const category = categories.find(
-          (c) => c.name.toLowerCase() === row.categoryName?.toLowerCase()
-        );
-        if (!category) {
-          console.warn(`Category not found for row:`, row);
-          return null; // filter out later
-        }
-        return {
-          name: row.name || "",
-          category: category._id,
-          image: row.image || "",
-        };
-      })
-      .filter(Boolean); // remove nulls
-
-    // ✅ Bulk insert using Promise.all
-    await Promise.all(
-      validRows.map((newSub) =>
-        axios.post(SUBCATEGORY_API, newSub).catch((err) => {
-          console.error("Error uploading row:", newSub, err);
-        })
-      )
-    );
-
-    setSnackbar({ open: true, message: "Excel uploaded successfully", severity: "success" });
-    fetchSubcategories();
-  } catch (error) {
-    console.error("Error reading Excel file:", error);
-    setSnackbar({ open: true, message: "Invalid Excel file", severity: "error" });
-  }
-};
+  // Apply pagination
+  const paginatedSubs = filteredSubs.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
     <Box sx={{ p: 4 }}>
@@ -215,15 +178,19 @@ const handleExcelUpload = async (event) => {
 
       {/* Excel Upload */}
       <Box sx={{ mb: 3 }}>
-        <Button component="label" variant="contained" color="secondary" startIcon={<MdUpload />}>
-          Upload Excel
-          <input type="file" accept=".xlsx, .xls" hidden onChange={handleExcelUpload} />
-        </Button>
-        <Typography variant="body2" sx={{ mt: 1, color: "gray" }}>
-          Excel format: <b>name | categoryName | image</b>
-        </Typography>
+        <CSVUploaderSub />
+        <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+          <Typography variant="body2">
+            💡 You can upload multiple products at once using a CSV file.  
+            Make sure your CSV includes columns like <b>Name</b>, <b>Category</b>, <b>Price</b>, and <b>Image URL</b>.  
+            <br />
+            Example:  
+            <code>Product Name, Category, Price, Image URL</code>
+          </Typography>
+        </Alert>
       </Box>
 
+      {/* Formik Form */}
       <Formik
         initialValues={{
           name: editingSub?.name || "",
@@ -236,10 +203,8 @@ const handleExcelUpload = async (event) => {
         {({ resetForm, setFieldValue, values }) => (
           <Form style={{ marginBottom: "2rem" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
-              {/* Name */}
               <Field as={TextField} name="name" label="Subcategory Name" fullWidth />
 
-              {/* Category Dropdown */}
               <FormControl fullWidth>
                 <InputLabel>Category</InputLabel>
                 <Field as={Select} name="category" value={values.category}>
@@ -251,7 +216,6 @@ const handleExcelUpload = async (event) => {
                 </Field>
               </FormControl>
 
-              {/* Image */}
               <Field as={TextField} name="image" label="Image URL" fullWidth />
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Button component="label" variant="outlined" disabled={uploading}>
@@ -279,7 +243,6 @@ const handleExcelUpload = async (event) => {
                 </Box>
               )}
 
-              {/* Buttons */}
               <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
                 <Button type="submit" variant="contained" color="primary" disabled={uploading}>
                   {editingSub ? "Update" : "Add"}
@@ -300,6 +263,20 @@ const handleExcelUpload = async (event) => {
           </Form>
         )}
       </Formik>
+
+      {/* Search */}
+      <Box sx={{ mb: 2, display: "flex", gap: 2, alignItems: "center" }}>
+        <TextField
+          label="Search Subcategories"
+          variant="outlined"
+          fullWidth
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(1); // reset page when searching
+          }}
+        />
+      </Box>
 
       {/* Table */}
       {loading ? (
@@ -345,7 +322,7 @@ const handleExcelUpload = async (event) => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {subcategories.length === 0 && (
+                {filteredSubs.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} align="center">
                       No subcategories found
@@ -359,7 +336,7 @@ const handleExcelUpload = async (event) => {
           {/* Pagination */}
           <Box display="flex" justifyContent="center" mt={2}>
             <Pagination
-              count={Math.ceil(subcategories.length / rowsPerPage)}
+              count={Math.ceil(filteredSubs.length / rowsPerPage)}
               page={page}
               onChange={handleChangePage}
               color="primary"

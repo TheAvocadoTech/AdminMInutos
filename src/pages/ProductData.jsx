@@ -1,16 +1,12 @@
-/* eslint-disable perfectionist/sort-named-imports */
-/* eslint-disable perfectionist/sort-named-imports */
 /* eslint-disable react/prop-types */
 /* eslint-disable */
 import axios from "axios";
-import * as XLSX from "xlsx";
 import { Field, FieldArray, Formik, Form } from "formik";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Container,
   Grid,
   IconButton,
@@ -19,63 +15,71 @@ import {
   TextField,
   Typography,
   MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Card,
   CardContent,
   CardMedia,
 } from "@mui/material";
-import ExcelUploadComponent from "./ExcelFile";
+import { MdEdit, MdDelete } from "react-icons/md";
 
 const API_URL = "https://backend.minutos.shop/api/product";
 const CATEGORY_API = "https://backend.minutos.shop/api/category/getcategories";
 const SUBCATEGORY_API = "https://backend.minutos.shop/api/subcategory/";
 
-// Cloudinary configuration
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
 const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
 
 export default function ProductData() {
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [uploading, setUploading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [filteredSubCategories, setFilteredSubCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [editingProduct, setEditingProduct] = useState(null);
+useEffect(() => {
+  if (editingProduct?.category?.[0]?._id) {
+    filterSubCategories(editingProduct.category[0]._id);
+  }
+}, [editingProduct]);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 20;
 
-  // ✅ Snackbar helper
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
 
-  // ✅ Fetch categories & subcategories
   useEffect(() => {
-    (async () => {
+    const fetchData = async () => {
       try {
-        const [catRes, subRes] = await Promise.all([
+        const [catRes, subRes, prodRes] = await Promise.all([
           axios.get(CATEGORY_API),
           axios.get(SUBCATEGORY_API),
+          axios.get(API_URL),
         ]);
         setCategories(catRes.data.categories || []);
         setSubCategories(subRes.data.subcategories || []);
+        setProducts(prodRes.data.data || []);
       } catch (err) {
-        console.error("Error fetching categories/subcategories:", err);
-        showSnackbar("Failed to load categories", "error");
+        console.error(err);
+        showSnackbar("Failed to load data", "error");
       }
-    })();
+    };
+    fetchData();
   }, []);
 
-  // ✅ Filter subcategories by category
   const filterSubCategories = (categoryId) => {
     if (!categoryId) return setFilteredSubCategories([]);
-    setFilteredSubCategories(
-      subCategories.filter((sub) => sub.category?._id === categoryId)
-    );
+    setFilteredSubCategories(subCategories.filter((sub) => sub.category?._id === categoryId));
   };
 
-  // ✅ Upload image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -87,7 +91,6 @@ export default function ProductData() {
     return res.data.secure_url;
   };
 
-  // ✅ Multiple image upload handler
   const handleImageUpload = async (event, push) => {
     const files = event.target?.files;
     if (!files?.length) return;
@@ -101,7 +104,7 @@ export default function ProductData() {
       urls.forEach((url) => push(url));
       showSnackbar("Images uploaded successfully");
     } catch (err) {
-      console.error("Error uploading images:", err);
+      console.error(err);
       showSnackbar("Image upload failed", "error");
     } finally {
       setUploading(false);
@@ -109,90 +112,36 @@ export default function ProductData() {
     }
   };
 
-  // ✅ Excel upload (bulk products)
- const handleExcelUpload = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  try {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
-
-    if (!rows.length) {
-      showSnackbar("Excel file empty or invalid", "warning");
-      return;
+  const calculatePricing = useCallback((originalPrice, discountedMRP, setFieldValue) => {
+    if (originalPrice && discountedMRP && discountedMRP <= originalPrice) {
+      const discount = ((originalPrice - discountedMRP) / originalPrice) * 100;
+      setFieldValue("discount", discount.toFixed(2));
+      setFieldValue("amountSaving", originalPrice - discountedMRP);
+      setFieldValue("price", discountedMRP);
+    } else {
+      setFieldValue("discount", 0);
+      setFieldValue("amountSaving", 0);
+      setFieldValue("price", originalPrice || 0);
     }
+  }, []);
 
-    // Create mapping name -> full object from fetched categories/subcategories
-    const categoryMap = {};
-    categories.forEach((cat) => {
-      categoryMap[cat.name.trim().toLowerCase()] = { _id: cat._id, name: cat.name };
-    });
-
-    const subCategoryMap = {};
-    subCategories.forEach((sub) => {
-      subCategoryMap[sub.name.trim().toLowerCase()] = { _id: sub._id, name: sub.name };
-    });
-
-    const products = rows.map((row, i) => {
-  const categoryName = row["Category Name"]?.trim().toLowerCase();
-  const subCategoryName = row["Sub Category Name"]?.trim().toLowerCase();
-
-  const categoryObj = categoryMap[categoryName];
-  const subCategoryObj = subCategoryMap[subCategoryName];
-
-  if (!categoryObj) {
-    console.warn(`Category not found for product: ${row["Name"]}`);
-  }
-  if (!subCategoryObj) {
-    console.warn(`SubCategory not found for product: ${row["Name"]}`);
-  }
-
-  return {
-    name: row["Name"]?.trim() || `Unnamed-${i + 1}`,
-    productName: row["Product Name"] || "",
-    category: categoryObj ? [categoryObj] : [],
-    subCategory: subCategoryObj ? [subCategoryObj] : [],
-    unit: row["Unit"] || "",
-    pack: row["Pack"] || "",
-    description: row["Description"] || "",
-    stock: Number(row["Stock"] || 0),
-    originalPrice: Number(row["Original Price"] || 0),
-    discountedMRP: Number(row["Discounted MRP"] || 0),
-    rating: Number(row["Rating"] || 0),
-    images: row["Images"]
-      ? row["Images"].split(",").map((u) => u.trim())
-      : [],
-    more_details: {
-      brand: row["Brand"] || "",
-      expiry: row["Expiry"] || "",
-    },
-  };
-});
-
-    await axios.post(`${API_URL}/bulk-upload`, { products });
-    showSnackbar("Products uploaded successfully from Excel");
-  } catch (err) {
-    console.error("Excel upload error:", err);
-    showSnackbar("Failed to process Excel", "error");
-  } finally {
-    event.target.value = "";
-  }
-};
-
-
-  // ✅ Submit new product
   const handleSubmit = async (values, { resetForm, setSubmitting }) => {
     setSubmitting(true);
     setLoading(true);
     try {
-      await axios.post(API_URL, values);
-      showSnackbar("Product added successfully");
+      if (editingProduct) {
+        await axios.put(`${API_URL}/id/${editingProduct._id}`, values);
+        showSnackbar("Product updated successfully");
+      } else {
+        await axios.post(`${API_URL}/create`, values);
+        showSnackbar("Product added successfully");
+      }
+      const prodRes = await axios.get(API_URL);
+      setProducts(prodRes.data.data || []);
       resetForm();
+      setEditingProduct(null);
     } catch (err) {
-      console.error("Save error:", err);
+      console.error(err);
       showSnackbar("Error saving product", "error");
     } finally {
       setSubmitting(false);
@@ -200,83 +149,63 @@ export default function ProductData() {
     }
   };
 
-  // ✅ Pricing logic
-  const calculatePricing = useCallback(
-    (originalPrice, discountedMRP, setFieldValue) => {
-      if (originalPrice && discountedMRP && discountedMRP <= originalPrice) {
-        const discount = ((originalPrice - discountedMRP) / originalPrice) * 100;
-        setFieldValue("discount", discount.toFixed(2));
-        setFieldValue("amountSaving", originalPrice - discountedMRP);
-        setFieldValue("price", discountedMRP);
-      } else {
-        setFieldValue("discount", 0);
-        setFieldValue("amountSaving", 0);
-        setFieldValue("price", originalPrice || 0);
-      }
-    },
-    []
-  );
+  const handleEdit = (product) => setEditingProduct(product);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    try {
+      await axios.delete(`${API_URL}/id/${id}`);
+      showSnackbar("Product deleted successfully");
+      setProducts(products.filter((p) => p._id !== id));
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to delete product", "error");
+    }
+  };
+
+  const indexOfLastProduct = currentPage * PRODUCTS_PER_PAGE;
+  const indexOfFirstProduct = indexOfLastProduct - PRODUCTS_PER_PAGE;
+  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+
+  const handleNextPage = () => currentPage < totalPages && setCurrentPage((prev) => prev + 1);
+  const handlePrevPage = () => currentPage > 1 && setCurrentPage((prev) => prev - 1);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ mb: 4, color: "black", fontWeight: "bold" }}
-      >
+      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: "bold" }}>
         Product Management
       </Typography>
 
-      <ExcelUploadComponent/>
-
-      {/* ✅ Bulk Excel Upload */}
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom color="red">
-          Bulk Upload via Excel
-        </Typography>
-        <Button component="label" variant="outlined" fullWidth sx={{ mb: 2 }}>
-          Upload Excel
-          <input
-            type="file"
-            hidden
-            accept=".xlsx,.xls"
-            onChange={handleExcelUpload}
-          />
-        </Button>
-        <Typography variant="body2" color="text.secondary">
-          Columns: Name, Product Name, Category ID, Sub Category ID, Unit, Pack,
-          Description, Stock, Original Price, Discounted MRP, Rating, Images,
-          Brand, Expiry
-        </Typography>
-      </Paper>
-
-      {/* ✅ Formik Form */}
       <Formik
+        enableReinitialize
         initialValues={{
-          name: "",
-          productName: "",
-          category: "",
-          subCategory: "",
-          unit: "",
-          pack: "",
-          description: "",
-          stock: 0,
-          originalPrice: 0,
-          discountedMRP: 0,
-          price: 0,
-          discount: 0,
-          amountSaving: 0,
-          rating: 0,
-          images: [],
-          more_details: { brand: "", expiry: "" },
+          name: editingProduct?.name || "",
+          productName: editingProduct?.productName || "",
+          category: editingProduct?.category?.[0]?._id || "",
+          subCategory: editingProduct?.subCategory?.[0]?._id || "",
+          unit: editingProduct?.unit || "",
+          pack: editingProduct?.pack || "",
+          description: editingProduct?.description || "",
+          stock: editingProduct?.stock || 0,
+          originalPrice: editingProduct?.originalPrice || 0,
+          discountedMRP: editingProduct?.discountedMRP || 0,
+          price: editingProduct?.price || 0,
+          discount: editingProduct?.discount || 0,
+          amountSaving: editingProduct?.amountSaving || 0,
+          rating: editingProduct?.rating || 0,
+          images: editingProduct?.images || [],
+          more_details: {
+            brand: editingProduct?.more_details?.brand || "",
+            expiry: editingProduct?.more_details?.expiry || "",
+          },
         }}
         validate={(values) => {
           const errors = {};
           if (!values.name) errors.name = "Required";
           if (!values.productName) errors.productName = "Required";
           if (!values.category) errors.category = "Required";
-          if (values.rating < 0 || values.rating > 5)
-            errors.rating = "Rating must be 0–5";
+          if (values.rating < 0 || values.rating > 5) errors.rating = "Rating must be 0–5";
           return errors;
         }}
         onSubmit={handleSubmit}
@@ -284,7 +213,7 @@ export default function ProductData() {
         {({ values, errors, touched, setFieldValue, handleChange, isSubmitting }) => (
           <Form>
             <Grid container spacing={3}>
-              {/* Left */}
+              {/* Left Form */}
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 3, mb: 3 }}>
                   <Typography variant="h6" color="red" gutterBottom>
@@ -292,32 +221,34 @@ export default function ProductData() {
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
-                      <Field
-                        as={TextField}
+                      <TextField
                         name="name"
                         label="Name"
                         fullWidth
+                        value={values.name}
+                        onChange={handleChange}
                         error={touched.name && !!errors.name}
                         helperText={touched.name && errors.name}
                       />
                     </Grid>
                     <Grid item xs={12}>
-                      <Field
-                        as={TextField}
+                      <TextField
                         name="productName"
                         label="Product Name"
                         fullWidth
+                        value={values.productName}
+                        onChange={handleChange}
                         error={touched.productName && !!errors.productName}
                         helperText={touched.productName && errors.productName}
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <Field
-                        as={TextField}
+                      <TextField
                         select
                         name="category"
                         label="Category"
                         fullWidth
+                        value={values.category}
                         onChange={(e) => {
                           handleChange(e);
                           filterSubCategories(e.target.value);
@@ -332,41 +263,43 @@ export default function ProductData() {
                             {c.name}
                           </MenuItem>
                         ))}
-                      </Field>
+                      </TextField>
                     </Grid>
                     <Grid item xs={6}>
-                      <Field
-                        as={TextField}
-                        select
-                        name="subCategory"
-                        label="Sub Category"
-                        fullWidth
-                        disabled={!values.category}
-                      >
-                        <MenuItem value="">
-                          <em>Select</em>
-                        </MenuItem>
-                        {filteredSubCategories.map((s) => (
-                          <MenuItem key={s._id} value={s._id}>
-                            {s.name}
-                          </MenuItem>
-                        ))}
-                      </Field>
+                      <TextField
+  select
+  name="subCategory"
+  label="Sub Category"
+  fullWidth
+  value={values.subCategory}
+  disabled={!values.category}
+  onChange={handleChange}
+>
+  <MenuItem value="">
+    <em>Select</em>
+  </MenuItem>
+  {filteredSubCategories.map((s) => (
+    <MenuItem key={s._id} value={s._id}>
+      {s.name}
+    </MenuItem>
+  ))}
+</TextField>
                     </Grid>
                     <Grid item xs={6}>
-                      <Field as={TextField} name="unit" label="Unit" fullWidth />
+                      <TextField name="unit" label="Unit" fullWidth value={values.unit} onChange={handleChange} />
                     </Grid>
                     <Grid item xs={6}>
-                      <Field as={TextField} name="pack" label="Pack Size" fullWidth />
+                      <TextField name="pack" label="Pack Size" fullWidth value={values.pack} onChange={handleChange} />
                     </Grid>
                     <Grid item xs={12}>
-                      <Field
-                        as={TextField}
+                      <TextField
                         name="description"
                         label="Description"
                         fullWidth
                         multiline
                         rows={3}
+                        value={values.description}
+                        onChange={handleChange}
                       />
                     </Grid>
                   </Grid>
@@ -378,23 +311,30 @@ export default function ProductData() {
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <Field as={TextField} name="more_details.brand" label="Brand" fullWidth />
+                      <TextField
+                        name="more_details.brand"
+                        label="Brand"
+                        fullWidth
+                        value={values.more_details.brand}
+                        onChange={handleChange}
+                      />
                     </Grid>
                     <Grid item xs={6}>
-                      <Field
-                        as={TextField}
+                      <TextField
                         name="more_details.expiry"
                         type="date"
                         label="Expiry"
-                        InputLabelProps={{ shrink: true }}
                         fullWidth
+                        InputLabelProps={{ shrink: true }}
+                        value={values.more_details.expiry}
+                        onChange={handleChange}
                       />
                     </Grid>
                   </Grid>
                 </Paper>
               </Grid>
 
-              {/* Right */}
+              {/* Right Form */}
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 3, mb: 3 }}>
                   <Typography variant="h6" color="red" gutterBottom>
@@ -403,20 +343,9 @@ export default function ProductData() {
                   <FieldArray name="images">
                     {({ push, remove }) => (
                       <>
-                        <Button
-                          component="label"
-                          variant="outlined"
-                          disabled={uploading}
-                          fullWidth
-                        >
+                        <Button component="label" variant="outlined" disabled={uploading} fullWidth>
                           {uploading ? "Uploading..." : "Upload Images"}
-                          <input
-                            type="file"
-                            hidden
-                            multiple
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, push)}
-                          />
+                          <input type="file" hidden multiple accept="image/*" onChange={(e) => handleImageUpload(e, push)} />
                         </Button>
                         <Grid container spacing={1} sx={{ mt: 1 }}>
                           {values.images.map((img, i) => (
@@ -425,12 +354,7 @@ export default function ProductData() {
                                 <img
                                   src={img}
                                   alt={`img-${i}`}
-                                  style={{
-                                    width: "100%",
-                                    height: 100,
-                                    borderRadius: 8,
-                                    objectFit: "cover",
-                                  }}
+                                  style={{ width: "100%", height: 100, borderRadius: 8, objectFit: "cover" }}
                                 />
                                 <IconButton
                                   size="small"
@@ -455,7 +379,7 @@ export default function ProductData() {
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <Field as={TextField} name="stock" label="Stock" type="number" fullWidth />
+                      <TextField name="stock" label="Stock" type="number" fullWidth value={values.stock} onChange={handleChange} />
                     </Grid>
                     <Grid item xs={6}>
                       <TextField
@@ -484,27 +408,15 @@ export default function ProductData() {
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <Field
-                        as={TextField}
-                        name="price"
-                        label="Final Price"
-                        fullWidth
-                        InputProps={{ readOnly: true }}
-                      />
+                      <TextField name="price" label="Final Price" fullWidth value={values.price} InputProps={{ readOnly: true }} />
                     </Grid>
                   </Grid>
                 </Paper>
 
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Preview
-                  </Typography>
+                {/* Image Preview Card */}
+                {values.images.length > 0 && (
                   <Card>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={values.images[0] || "https://via.placeholder.com/300x200"}
-                    />
+                    <CardMedia component="img" height="200" image={values.images[0]} />
                     <CardContent>
                       <Typography variant="h6">{values.productName || "Product Name"}</Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -515,30 +427,78 @@ export default function ProductData() {
                       </Typography>
                     </CardContent>
                   </Card>
-                </Paper>
+                )}
               </Grid>
             </Grid>
 
             <Box textAlign="center" mt={4}>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={isSubmitting || loading}
-                size="large"
-              >
-                {loading ? "Saving..." : "Add Product"}
+              <Button type="submit" variant="contained" disabled={isSubmitting || loading} size="large">
+                {loading ? "Saving..." : editingProduct ? "Update Product" : "Add Product"}
               </Button>
             </Box>
           </Form>
         )}
       </Formik>
 
-      {/* ✅ Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
+      {/* Product Table */}
+      <Paper sx={{ mt: 6 }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Image</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Sub Category</TableCell>
+                <TableCell>Stock</TableCell>
+                <TableCell>Price</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {currentProducts.map((p) => (
+                <TableRow key={p._id}>
+                  <TableCell>
+                    <img
+                      src={p.images?.[0] || "https://via.placeholder.com/50"}
+                      alt={p.name}
+                      style={{ width: 50, height: 50, borderRadius: 4, objectFit: "cover" }}
+                    />
+                  </TableCell>
+                  <TableCell>{p.productName || p.name}</TableCell>
+                  <TableCell>{p.category?.[0]?.name || "-"}</TableCell>
+                  <TableCell>{p.subCategory?.[0]?.name || "-"}</TableCell>
+                  <TableCell>{p.stock}</TableCell>
+                  <TableCell>₹{p.price}</TableCell>
+                  <TableCell>
+                    <IconButton color="primary" onClick={() => handleEdit(p)}>
+                      <MdEdit />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(p._id)}>
+                      <MdDelete />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Pagination */}
+        <Box mt={2} display="flex" justifyContent="center" alignItems="center" gap={2}>
+          <Button variant="outlined" disabled={currentPage === 1} onClick={handlePrevPage}>
+            Previous
+          </Button>
+          <Typography>
+            Page {currentPage} of {totalPages}
+          </Typography>
+          <Button variant="outlined" disabled={currentPage === totalPages} onClick={handleNextPage}>
+            Next
+          </Button>
+        </Box>
+      </Paper>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
     </Container>
