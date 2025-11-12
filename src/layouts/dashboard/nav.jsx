@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Drawer from '@mui/material/Drawer';
-// import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
@@ -80,12 +79,8 @@ export default function Nav({ openNav, onCloseNav }) {
         />
 
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="h6">Minutos - 10 minute Delievery Solution</Typography>
-
-          
+          <Typography variant="h6">Minutos - 10 Minute Delivery Solution</Typography>
         </Box>
-
-        
       </Stack>
     </Box>
   );
@@ -126,7 +121,8 @@ export default function Nav({ openNav, onCloseNav }) {
             height: 1,
             position: 'fixed',
             width: NAV.WIDTH,
-            borderRight: (theme) => `dashed 1px ${theme.palette.divider}`,
+            bgcolor: '#fff',
+            borderRight: (theme) => `solid 1px ${theme.palette.divider}`,
           }}
         >
           {renderContent}
@@ -138,6 +134,7 @@ export default function Nav({ openNav, onCloseNav }) {
           PaperProps={{
             sx: {
               width: NAV.WIDTH,
+              bgcolor: '#fff',
             },
           }}
         >
@@ -168,24 +165,33 @@ function NavItem({ item }) {
         minHeight: 44,
         borderRadius: 0.75,
         typography: 'body2',
-        color: 'text.secondary',
         textTransform: 'capitalize',
         fontWeight: 'fontWeightMedium',
-        ...(active && {
-          color: 'primary.main',
-          fontWeight: 'fontWeightSemiBold',
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-          '&:hover': {
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
-          },
-        }),
+        transition: 'all 0.2s ease-in-out',
+        color: active ? '#d32f2f' : 'text.secondary',
+        bgcolor: active ? alpha('#d32f2f', 0.08) : 'transparent',
+        '&:hover': {
+          color: '#d32f2f',
+          bgcolor: (theme) => alpha('#d32f2f', 0.12),
+        },
       }}
     >
-      <Box component="span" sx={{ width: 24, height: 24, mr: 2 }}>
+      <Box
+        component="span"
+        sx={{
+          width: 24,
+          height: 24,
+          mr: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: active ? '#d32f2f' : 'text.secondary',
+        }}
+      >
         {item.icon}
       </Box>
 
-      <Box component="span">{item.title} </Box>
+      <Box component="span">{item.title}</Box>
     </ListItemButton>
   );
 }

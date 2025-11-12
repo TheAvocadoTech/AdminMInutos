@@ -43,11 +43,13 @@ export default function ProductData() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
-useEffect(() => {
-  if (editingProduct?.category?.[0]?._id) {
-    filterSubCategories(editingProduct.category[0]._id);
-  }
-}, [editingProduct]);
+
+  useEffect(() => {
+    if (editingProduct?.category?.[0]?._id) {
+      filterSubCategories(editingProduct.category[0]._id);
+    }
+  }, [editingProduct]);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const PRODUCTS_PER_PAGE = 20;
@@ -171,6 +173,24 @@ useEffect(() => {
   const handleNextPage = () => currentPage < totalPages && setCurrentPage((prev) => prev + 1);
   const handlePrevPage = () => currentPage > 1 && setCurrentPage((prev) => prev - 1);
 
+  // Red button styles
+  const redButtonStyle = {
+    bgcolor: '#dc2626',
+    color: 'white',
+    '&:hover': {
+      bgcolor: '#b91c1c',
+    },
+  };
+
+  const redOutlinedButtonStyle = {
+    color: '#dc2626',
+    borderColor: '#dc2626',
+    '&:hover': {
+      borderColor: '#b91c1c',
+      bgcolor: 'rgba(220, 38, 38, 0.04)',
+    },
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: "bold" }}>
@@ -216,7 +236,7 @@ useEffect(() => {
               {/* Left Form */}
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" color="red" gutterBottom>
+                  <Typography variant="h6" color="black" gutterBottom>
                     Product Info
                   </Typography>
                   <Grid container spacing={2}>
@@ -267,23 +287,23 @@ useEffect(() => {
                     </Grid>
                     <Grid item xs={6}>
                       <TextField
-  select
-  name="subCategory"
-  label="Sub Category"
-  fullWidth
-  value={values.subCategory}
-  disabled={!values.category}
-  onChange={handleChange}
->
-  <MenuItem value="">
-    <em>Select</em>
-  </MenuItem>
-  {filteredSubCategories.map((s) => (
-    <MenuItem key={s._id} value={s._id}>
-      {s.name}
-    </MenuItem>
-  ))}
-</TextField>
+                        select
+                        name="subCategory"
+                        label="Sub Category"
+                        fullWidth
+                        value={values.subCategory}
+                        disabled={!values.category}
+                        onChange={handleChange}
+                      >
+                        <MenuItem value="">
+                          <em>Select</em>
+                        </MenuItem>
+                        {filteredSubCategories.map((s) => (
+                          <MenuItem key={s._id} value={s._id}>
+                            {s.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid item xs={6}>
                       <TextField name="unit" label="Unit" fullWidth value={values.unit} onChange={handleChange} />
@@ -306,7 +326,7 @@ useEffect(() => {
                 </Paper>
 
                 <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
+                  <Typography variant="h6" color="black" gutterBottom>
                     Extra Details
                   </Typography>
                   <Grid container spacing={2}>
@@ -337,13 +357,19 @@ useEffect(() => {
               {/* Right Form */}
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" color="red" gutterBottom>
+                  <Typography variant="h6" color="black" gutterBottom>
                     Images
                   </Typography>
                   <FieldArray name="images">
                     {({ push, remove }) => (
                       <>
-                        <Button component="label" variant="outlined" disabled={uploading} fullWidth>
+                        <Button 
+                          component="label" 
+                          variant="outlined" 
+                          disabled={uploading} 
+                          fullWidth
+                          sx={redOutlinedButtonStyle}
+                        >
                           {uploading ? "Uploading..." : "Upload Images"}
                           <input type="file" hidden multiple accept="image/*" onChange={(e) => handleImageUpload(e, push)} />
                         </Button>
@@ -374,7 +400,7 @@ useEffect(() => {
                 </Paper>
 
                 <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
+                  <Typography variant="h6" color="black" gutterBottom>
                     Pricing
                   </Typography>
                   <Grid container spacing={2}>
@@ -432,7 +458,13 @@ useEffect(() => {
             </Grid>
 
             <Box textAlign="center" mt={4}>
-              <Button type="submit" variant="contained" disabled={isSubmitting || loading} size="large">
+              <Button 
+                type="submit" 
+                variant="contained" 
+                disabled={isSubmitting || loading} 
+                size="large"
+                sx={redButtonStyle}
+              >
                 {loading ? "Saving..." : editingProduct ? "Update Product" : "Add Product"}
               </Button>
             </Box>
@@ -471,10 +503,10 @@ useEffect(() => {
                   <TableCell>{p.stock}</TableCell>
                   <TableCell>₹{p.price}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" onClick={() => handleEdit(p)}>
+                    <IconButton color="black" onClick={() => handleEdit(p)}>
                       <MdEdit />
                     </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(p._id)}>
+                    <IconButton color="black" onClick={() => handleDelete(p._id)}>
                       <MdDelete />
                     </IconButton>
                   </TableCell>
@@ -486,13 +518,23 @@ useEffect(() => {
 
         {/* Pagination */}
         <Box mt={2} display="flex" justifyContent="center" alignItems="center" gap={2}>
-          <Button variant="outlined" disabled={currentPage === 1} onClick={handlePrevPage}>
+          <Button 
+            variant="outlined" 
+            disabled={currentPage === 1} 
+            onClick={handlePrevPage}
+            sx={redOutlinedButtonStyle}
+          >
             Previous
           </Button>
           <Typography>
             Page {currentPage} of {totalPages}
           </Typography>
-          <Button variant="outlined" disabled={currentPage === totalPages} onClick={handleNextPage}>
+          <Button 
+            variant="outlined" 
+            disabled={currentPage === totalPages} 
+            onClick={handleNextPage}
+            sx={redOutlinedButtonStyle}
+          >
             Next
           </Button>
         </Box>

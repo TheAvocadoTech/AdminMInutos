@@ -170,6 +170,24 @@ export default function SubCategory() {
   // Apply pagination
   const paginatedSubs = filteredSubs.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
+  // Red button styles
+  const redButtonStyle = {
+    bgcolor: '#dc2626',
+    color: 'white',
+    '&:hover': {
+      bgcolor: '#b91c1c',
+    },
+  };
+
+  const redOutlinedButtonStyle = {
+    color: '#dc2626',
+    borderColor: '#dc2626',
+    '&:hover': {
+      borderColor: '#b91c1c',
+      bgcolor: 'rgba(220, 38, 38, 0.04)',
+    },
+  };
+
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
@@ -218,7 +236,12 @@ export default function SubCategory() {
 
               <Field as={TextField} name="image" label="Image URL" fullWidth />
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Button component="label" variant="outlined" disabled={uploading}>
+                <Button 
+                  component="label" 
+                  variant="outlined" 
+                  disabled={uploading}
+                  sx={redOutlinedButtonStyle}
+                >
                   {uploading ? "Uploading..." : "Upload Image"}
                   <input
                     type="file"
@@ -244,7 +267,12 @@ export default function SubCategory() {
               )}
 
               <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                <Button type="submit" variant="contained" color="primary" disabled={uploading}>
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  disabled={uploading}
+                  sx={redButtonStyle}
+                >
                   {editingSub ? "Update" : "Add"}
                 </Button>
                 {editingSub && (

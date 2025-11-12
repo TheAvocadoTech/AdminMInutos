@@ -15,7 +15,7 @@ import { customShadows } from './custom-shadows';
 export default function ThemeProvider({ children }) {
   const memoizedValue = useMemo(
     () => ({
-      palette: palette(),
+      palette: palette(), // ✅ red palette imported here
       typography,
       shadows: shadows(),
       customShadows: customShadows(),
