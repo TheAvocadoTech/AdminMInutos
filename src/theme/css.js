@@ -15,7 +15,8 @@ export const paper = ({ theme, bgcolor, dropdown }) => ({
       color: bgcolor,
     }),
   }),
-  backgroundImage: 'url(/assets/cyan-blur.png), url(/assets/red-blur.png)',
+  // ✅ Updated for Red & White theme
+  backgroundImage: 'url(/assets/red-blur.png), url(/assets/white-blur.png)',
   backgroundRepeat: 'no-repeat, no-repeat',
   backgroundPosition: 'top right, left bottom',
   backgroundSize: '50%, 50%',
@@ -38,11 +39,13 @@ export const menuItem = (theme) => ({
   '&:not(:last-of-type)': {
     marginBottom: 4,
   },
+  // ✅ Red hover/selected effect
   [`&.${menuItemClasses.selected}`]: {
     fontWeight: theme.typography.fontWeightSemiBold,
-    backgroundColor: theme.palette.action.selected,
+    backgroundColor: alpha(theme.palette.error.main, 0.15),
+    color: theme.palette.error.main,
     '&:hover': {
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor: alpha(theme.palette.error.main, 0.25),
     },
   },
   [`& .${checkboxClasses.root}`]: {
@@ -51,9 +54,10 @@ export const menuItem = (theme) => ({
     marginRight: theme.spacing(0.5),
   },
   [`&.${autocompleteClasses.option}[aria-selected="true"]`]: {
-    backgroundColor: theme.palette.action.selected,
+    backgroundColor: alpha(theme.palette.error.main, 0.15),
+    color: theme.palette.error.main,
     '&:hover': {
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor: alpha(theme.palette.error.main, 0.25),
     },
   },
   [`&+.${dividerClasses.root}`]: {
@@ -64,9 +68,9 @@ export const menuItem = (theme) => ({
 // ----------------------------------------------------------------------
 
 export function bgBlur(props) {
-  const color = props?.color || '#000000';
+  const color = props?.color || '#ffffff'; // White base
   const blur = props?.blur || 6;
-  const opacity = props?.opacity || 0.8;
+  const opacity = props?.opacity || 0.85;
   const imgUrl = props?.imgUrl;
 
   if (imgUrl) {
@@ -99,16 +103,13 @@ export function bgBlur(props) {
 
 export function bgGradient(props) {
   const direction = props?.direction || 'to bottom';
-  const startColor = props?.startColor;
-  const endColor = props?.endColor;
+  const startColor = props?.startColor || '#ff4d4d'; // Red
+  const endColor = props?.endColor || '#ffffff'; // White
   const imgUrl = props?.imgUrl;
-  const color = props?.color;
 
   if (imgUrl) {
     return {
-      background: `linear-gradient(${direction}, ${startColor || color}, ${
-        endColor || color
-      }), url(${imgUrl})`,
+      background: `linear-gradient(${direction}, ${startColor}, ${endColor}), url(${imgUrl})`,
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center center',
@@ -120,9 +121,10 @@ export function bgGradient(props) {
   };
 }
 
+
 // ----------------------------------------------------------------------
 
-export function textGradient(value) {
+export function textGradient(value = 'to right, #ff0000, #ffffff') {
   return {
     background: `-webkit-linear-gradient(${value})`,
     WebkitBackgroundClip: 'text',

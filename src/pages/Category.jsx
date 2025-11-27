@@ -178,6 +178,24 @@ export default function Category() {
     page * rowsPerPage
   );
 
+  // Red button styles
+  const redButtonStyle = {
+    bgcolor: '#dc2626',
+    color: 'white',
+    '&:hover': {
+      bgcolor: '#b91c1c',
+    },
+  };
+
+  const redOutlinedButtonStyle = {
+    color: '#dc2626',
+    borderColor: '#dc2626',
+    '&:hover': {
+      borderColor: '#b91c1c',
+      bgcolor: 'rgba(220, 38, 38, 0.04)',
+    },
+  };
+
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
@@ -277,6 +295,7 @@ export default function Category() {
                     component="label"
                     variant="outlined"
                     disabled={uploading || (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET)}
+                    sx={redOutlinedButtonStyle}
                   >
                     {uploading ? "Uploading..." : "Upload Image"}
                     <input
@@ -314,7 +333,12 @@ export default function Category() {
 
               {/* Form Actions */}
               <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                <Button type="submit" variant="contained" color="primary" disabled={uploading}>
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  disabled={uploading}
+                  sx={redButtonStyle}
+                >
                   {editingCategory ? "Update" : "Add"}
                 </Button>
                 {editingCategory && (

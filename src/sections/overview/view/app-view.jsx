@@ -85,103 +85,112 @@ export default function AppView() {
         </Grid>
 
         {/* Example charts (can replace later with real analytics) */}
-        <Grid xs={12} md={6} lg={8}>
-          <AppWebsiteVisits
-            title="Website Visits"
-            subheader="(+43%) than last year"
-            chart={{
-              labels: [
-                "01/01/2003",
-                "02/01/2003",
-                "03/01/2003",
-                "04/01/2003",
-                "05/01/2003",
-                "06/01/2003",
-                "07/01/2003",
-                "08/01/2003",
-                "09/01/2003",
-                "10/01/2003",
-                "11/01/2003",
-              ],
-              series: [
-                {
-                  name: "Team A",
-                  type: "column",
-                  fill: "solid",
-                  data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30],
-                },
-                {
-                  name: "Team B",
-                  type: "area",
-                  fill: "gradient",
-                  data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43],
-                },
-                {
-                  name: "Team C",
-                  type: "line",
-                  fill: "solid",
-                  data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39],
-                },
-              ],
-            }}
-          />
-        </Grid>
+       <Grid xs={12} md={6} lg={8}>
+  <AppWebsiteVisits
+    title="Monthly Grocery Orders Overview (India)"
+    subheader="(+35%) growth in grocery orders YoY"
+    chart={{
+      labels: [
+        "Jan 2024",
+        "Feb 2024",
+        "Mar 2024",
+        "Apr 2024",
+        "May 2024",
+        "Jun 2024",
+        "Jul 2024",
+        "Aug 2024",
+        "Sep 2024",
+        "Oct 2024",
+        "Nov 2024",
+      ],
+      series: [
+        {
+          name: "Quick Commerce (Instant Delivery)",
+          type: "column",
+          fill: "solid",
+          data: [2800, 3100, 3400, 3900, 4400, 4800, 5200, 5600, 6100, 6700, 7200],
+        },
+        {
+          name: "E-commerce (Scheduled Delivery)",
+          type: "area",
+          fill: "gradient",
+          data: [2200, 2400, 2700, 3100, 3400, 3700, 4100, 4500, 4900, 5200, 5600],
+        },
+        {
+          name: "Repeat Grocery Buyers",
+          type: "line",
+          fill: "solid",
+          data: [700, 850, 950, 1100, 1300, 1550, 1700, 1850, 2000, 2300, 2500],
+        },
+      ],
+    }}
+  />
+</Grid>
 
-        <Grid xs={12} md={6} lg={4}>
-          <AppCurrentVisits
-            title="Current Visits"
-            chart={{
-              series: [
-                { label: "America", value: 4344 },
-                { label: "Asia", value: 5435 },
-                { label: "Europe", value: 1443 },
-                { label: "Africa", value: 4443 },
-              ],
-            }}
-          />
-        </Grid>
+<Grid xs={12} md={6} lg={4}>
+  <AppCurrentVisits
+    title="Grocery Order Distribution by Indian Region"
+    chart={{
+      series: [
+        { label: "North India (Delhi, Punjab, UP)", value: 6200 },
+        { label: "South India (Bangalore, Chennai, Hyderabad)", value: 7800 },
+        { label: "West India (Mumbai, Pune, Gujarat)", value: 6900 },
+        { label: "East India (Kolkata, Odisha, Assam)", value: 3600 },
+      ],
+    }}
+  />
+</Grid>
 
-        <Grid xs={12} md={6} lg={8}>
-          <AppConversionRates
-            title="Conversion Rates"
-            subheader="(+43%) than last year"
-            chart={{
-              series: [
-                { label: "Italy", value: 400 },
-                { label: "Japan", value: 430 },
-                { label: "China", value: 448 },
-                { label: "Canada", value: 470 },
-                { label: "France", value: 540 },
-                { label: "Germany", value: 580 },
-                { label: "South Korea", value: 690 },
-                { label: "Netherlands", value: 1100 },
-                { label: "United States", value: 1200 },
-                { label: "United Kingdom", value: 1380 },
-              ],
-            }}
-          />
-        </Grid>
+<Grid xs={12} md={6} lg={8}>
+  <AppConversionRates
+    title="Top-Selling Grocery Categories (India)"
+    subheader="Conversion and demand across major grocery types"
+    chart={{
+      series: [
+        { label: "Fresh Fruits & Vegetables", value: 1280 },
+        { label: "Dairy & Bakery", value: 1150 },
+        { label: "Packaged Food", value: 990 },
+        { label: "Beverages", value: 870 },
+        { label: "Snacks & Munchies", value: 910 },
+        { label: "Atta, Rice & Dal", value: 1030 },
+        { label: "Household Essentials", value: 760 },
+        { label: "Oils & Masalas", value: 850 },
+        { label: "Frozen & Ready-to-Eat", value: 640 },
+        { label: "Baby Food & Care", value: 530 },
+      ],
+    }}
+  />
+</Grid>
 
-        <Grid xs={12} md={6} lg={4}>
-          <AppCurrentSubject
-            title="Current Subject"
-            chart={{
-              categories: [
-                "English",
-                "History",
-                "Physics",
-                "Geography",
-                "Chinese",
-                "Math",
-              ],
-              series: [
-                { name: "Series 1", data: [80, 50, 30, 40, 100, 20] },
-                { name: "Series 2", data: [20, 30, 40, 80, 20, 80] },
-                { name: "Series 3", data: [44, 76, 78, 13, 43, 10] },
-              ],
-            }}
-          />
-        </Grid>
+<Grid xs={12} md={6} lg={4}>
+  <AppCurrentSubject
+    title="Customer Behavior (Grocery Buyers)"
+    chart={{
+      categories: [
+        "Cart Abandonment Rate",
+        "Avg. Basket Value (₹)",
+        "Repeat Purchase Rate",
+        "Delivery Speed Satisfaction",
+        "Freshness Rating",
+        "Refund / Replacement Requests",
+      ],
+      series: [
+        {
+          name: "Quick Commerce",
+          data: [35, 520, 78, 92, 88, 8],
+        },
+        {
+          name: "E-commerce",
+          data: [48, 880, 65, 84, 80, 14],
+        },
+        {
+          name: "Overall (India)",
+          data: [41, 680, 71, 88, 84, 11],
+        },
+      ],
+    }}
+  />
+</Grid>
 
         
 
