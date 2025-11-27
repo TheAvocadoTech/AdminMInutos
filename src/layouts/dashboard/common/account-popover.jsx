@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -10,6 +11,9 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
 import { account } from 'src/_mock/account';
+// eslint-disable-next-line perfectionist/sort-imports
+import { removeToken } from 'src/utils/auth';
+   // <-- IMPORTANT
 
 // ----------------------------------------------------------------------
 
@@ -18,20 +22,13 @@ const MENU_OPTIONS = [
     label: 'Home',
     icon: 'eva:home-fill',
   },
-  {
-    label: 'Profile',
-    icon: 'eva:person-fill',
-  },
-  {
-    label: 'Settings',
-    icon: 'eva:settings-2-fill',
-  },
 ];
 
 // ----------------------------------------------------------------------
 
 export default function AccountPopover() {
   const [open, setOpen] = useState(null);
+  const navigate = useNavigate();   // <-- for redirect
 
   const handleOpen = (event) => {
     setOpen(event.currentTarget);
@@ -39,6 +36,12 @@ export default function AccountPopover() {
 
   const handleClose = () => {
     setOpen(null);
+  };
+
+  const handleLogout = () => {
+    removeToken();                 // <-- remove saved token  
+    handleClose();
+    navigate('/login', { replace: true });   // <-- redirect to login
   };
 
   return (
@@ -102,10 +105,11 @@ export default function AccountPopover() {
 
         <Divider sx={{ borderStyle: 'dashed', m: 0 }} />
 
+        {/* 🔴 LOGOUT FUNCTIONAL */}
         <MenuItem
           disableRipple
           disableTouchRipple
-          onClick={handleClose}
+          onClick={handleLogout}
           sx={{ typography: 'body2', color: 'error.main', py: 1.5 }}
         >
           Logout

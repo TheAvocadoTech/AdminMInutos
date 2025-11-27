@@ -1,10 +1,13 @@
-import { useState } from 'react';
+// src/sections/login/LoginView.jsx
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
+// eslint-disable-next-line no-unused-vars
+
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -12,141 +15,134 @@ import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import { alpha, useTheme } from '@mui/material/styles';
 import InputAdornment from '@mui/material/InputAdornment';
+// eslint-disable-next-line perfectionist/sort-imports
+import Alert from '@mui/material/Alert';
 
-import { useRouter } from 'src/routes/hooks';
-
-import { bgGradient } from 'src/theme/css';
-
+import { setToken, getToken } from 'src/utils/auth';
+// eslint-disable-next-line perfectionist/sort-imports
 import Logo from 'src/components/logo';
 import Iconify from 'src/components/iconify';
-
-// ----------------------------------------------------------------------
+// eslint-disable-next-line perfectionist/sort-imports
+import { bgGradient } from 'src/theme/css';
 
 export default function LoginView() {
   const theme = useTheme();
+  const navigate = useNavigate();
 
-  const router = useRouter();
+  // redirect if already logged in
+ useEffect(() => {
+  if (getToken()) {
+    navigate('/', { replace: true });
+  }
+}, [navigate]);
+
 
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState(""); // Prefilled for testing
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleClick = () => {
-    router.push('/dashboard');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      setLoading(true);
+
+      const res = await fetch("https://backend.minutos.shop/api/admin/adminLogin", {   // HARD-CODED URL
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || data.error || "Login failed.");
+        setLoading(false);
+        return;
+      }
+
+      // Save token
+      setToken(data.token);
+
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const renderForm = (
-    <>
-      <Stack spacing={3}>
-        <TextField name="email" label="Email address" />
-
-        <TextField
-          name="password"
-          label="Password"
-          type={showPassword ? 'text' : 'password'}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                  <Iconify icon={showPassword ? 'eva:eye-fill' : 'eva:eye-off-fill'} />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Stack>
-
-      <Stack direction="row" alignItems="center" justifyContent="flex-end" sx={{ my: 3 }}>
-        <Link variant="subtitle2" underline="hover">
-          Forgot password?
-        </Link>
-      </Stack>
-
-      <LoadingButton
-        fullWidth
-        size="large"
-        type="submit"
-        variant="contained"
-        color="inherit"
-        onClick={handleClick}
-      >
-        Login
-      </LoadingButton>
-    </>
-  );
 
   return (
     <Box
       sx={{
         ...bgGradient({
           color: alpha(theme.palette.background.default, 0.9),
-          imgUrl: '/assets/background/overlay_4.jpg',
+          imgUrl: "/assets/background/overlay_4.jpg",
         }),
         height: 1,
       }}
     >
-      <Logo
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, md: 24 },
-          left: { xs: 16, md: 24 },
-        }}
-      />
+      <Logo sx={{ position: "fixed", top: 24, left: 24 }} />
 
       <Stack alignItems="center" justifyContent="center" sx={{ height: 1 }}>
-        <Card
-          sx={{
-            p: 5,
-            width: 1,
-            maxWidth: 420,
-          }}
-        >
-          <Typography variant="h4">Sign in to Minimal</Typography>
+        <Card sx={{ p: 5, width: 1, maxWidth: 420 }}>
+          <Typography variant="h4">Admin Login</Typography>
 
           <Typography variant="body2" sx={{ mt: 2, mb: 5 }}>
             Don’t have an account?
             <Link variant="subtitle2" sx={{ ml: 0.5 }}>
-              Get started
+              Contact Admin
             </Link>
           </Typography>
 
-          <Stack direction="row" spacing={2}>
-            <Button
+          <Divider sx={{ my: 3 }} />
+
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={3}>
+              <TextField
+                label="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <TextField
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)}>
+                        <Iconify icon={showPassword ? "eva:eye-fill" : "eva:eye-off-fill"} />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Stack>
+
+            {error && (
+              <Alert sx={{ mt: 2 }} severity="error">
+                {error}
+              </Alert>
+            )}
+
+            <LoadingButton
               fullWidth
               size="large"
+              type="submit"
+              variant="contained"
               color="inherit"
-              variant="outlined"
-              sx={{ borderColor: alpha(theme.palette.grey[500], 0.16) }}
+              loading={loading}
+              sx={{ mt: 3 }}
             >
-              <Iconify icon="eva:google-fill" color="#DF3E30" />
-            </Button>
-
-            <Button
-              fullWidth
-              size="large"
-              color="inherit"
-              variant="outlined"
-              sx={{ borderColor: alpha(theme.palette.grey[500], 0.16) }}
-            >
-              <Iconify icon="eva:facebook-fill" color="#1877F2" />
-            </Button>
-
-            <Button
-              fullWidth
-              size="large"
-              color="inherit"
-              variant="outlined"
-              sx={{ borderColor: alpha(theme.palette.grey[500], 0.16) }}
-            >
-              <Iconify icon="eva:twitter-fill" color="#1C9CEA" />
-            </Button>
-          </Stack>
-
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              OR
-            </Typography>
-          </Divider>
-
-          {renderForm}
+              Login
+            </LoadingButton>
+          </form>
         </Card>
       </Stack>
     </Box>
