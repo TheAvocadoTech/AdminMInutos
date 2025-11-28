@@ -18,8 +18,8 @@ import {
   Stack,
 } from "@mui/material";
 
-const USER_API = "https://bakcend-n9kq.onrender.com/User/get";
-const UPDATE_VENDOR_API = "https://bakcend-n9kq.onrender.com/User/update"; // 👈 Replace with your actual API
+const USER_API = "https://backend.minutos.shop/api/vendor/getAllVendors";
+const UPDATE_VENDOR_API = "https://bakcend-n9kq.onrender.com/User/update"; // Update status API
 
 export default function VendorData() {
   const [users, setUsers] = useState([]);
@@ -37,7 +37,9 @@ export default function VendorData() {
     try {
       setLoading(true);
       const res = await axios.get(USER_API);
-      setUsers(res.data || []); // API returns an array
+
+      // FIX: API returns { message: "...", vendors: [...] }
+      setUsers(res.data.vendors || []);
     } catch (err) {
       console.error("Error fetching users:", err);
     } finally {
@@ -48,7 +50,8 @@ export default function VendorData() {
   // handle vendor accept/reject
   const handleVendorStatus = async (id, status) => {
     try {
-      await axios.put(`${UPDATE_VENDOR_API}/${id}`, { status }); // 👈 adjust payload as per your backend
+      await axios.put(`${UPDATE_VENDOR_API}/${id}`, { status });
+
       // Update UI immediately
       setUsers((prev) =>
         prev.map((u) => (u._id === id ? { ...u, status } : u))
@@ -65,13 +68,13 @@ export default function VendorData() {
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // reset to first page
+    setPage(0);
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: "bold" }}>
-        User Management
+        Vendor Management
       </Typography>
 
       <Paper>
@@ -93,6 +96,7 @@ export default function VendorData() {
                 <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {loading ? (
                 <TableRow>
@@ -117,22 +121,24 @@ export default function VendorData() {
                       <TableCell>{u.pinCode}</TableCell>
                       <TableCell>{u.nominateForAwards ? "Yes" : "No"}</TableCell>
                       <TableCell>{u.acceptMessages ? "Yes" : "No"}</TableCell>
-                      <TableCell>{u.status || "Pending"}</TableCell>
+                      <TableCell>{u.status || "PENDING"}</TableCell>
+
                       <TableCell>
                         <Stack direction="row" spacing={1}>
                           <Button
                             variant="contained"
                             color="success"
                             size="small"
-                            onClick={() => handleVendorStatus(u._id, "Accepted")}
+                            onClick={() => handleVendorStatus(u._id, "ACCEPTED")}
                           >
                             Accept
                           </Button>
+
                           <Button
                             variant="outlined"
                             color="error"
                             size="small"
-                            onClick={() => handleVendorStatus(u._id, "Rejected")}
+                            onClick={() => handleVendorStatus(u._id, "REJECTED")}
                           >
                             Reject
                           </Button>
@@ -143,7 +149,7 @@ export default function VendorData() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={12} align="center">
-                    No users found
+                    No vendors found
                   </TableCell>
                 </TableRow>
               )}
@@ -151,7 +157,7 @@ export default function VendorData() {
           </Table>
         </TableContainer>
 
-        {/* Pagination Component */}
+        {/* Pagination */}
         <TablePagination
           component="div"
           count={users.length}
