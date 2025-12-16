@@ -24,6 +24,7 @@ import Logo from 'src/components/logo';
 import Iconify from 'src/components/iconify';
 // eslint-disable-next-line perfectionist/sort-imports
 import { bgGradient } from 'src/theme/css';
+import { adminLogin } from 'src/services/authService';
 
 export default function LoginView() {
   const theme = useTheme();
@@ -32,7 +33,7 @@ export default function LoginView() {
   // redirect if already logged in
  useEffect(() => {
   if (getToken()) {
-    navigate('/', { replace: true });
+    navigate('/admin/dashboard', { replace: true });
   }
 }, [navigate]);
 
@@ -43,37 +44,31 @@ export default function LoginView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
 
-    try {
-      setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-      const res = await fetch("https://backend.minutos.shop/api/admin/adminLogin", {   // HARD-CODED URL
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const data = await adminLogin(email, password);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || data.error || "Login failed.");
-        setLoading(false);
-        return;
-      }
-
-      // Save token
-      setToken(data.token);
-
-      navigate("/", { replace: true });
-    } catch (err) {
-      setError("Network error");
-    } finally {
+    if (!data?.token || !data?.user?.isAdmin) {
+      setError("Unauthorized access");
       setLoading(false);
+      return;
     }
-  };
+
+    // ✅ store token using util
+    setToken(data.token);
+
+    navigate("/", { replace: true });
+  } catch (err) {
+    setError(err.response?.data?.error || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Box

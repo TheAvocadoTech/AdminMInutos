@@ -1,18 +1,13 @@
-// src/utils/auth.js
-export const TOKEN_KEY = 'admin_token';
+const TOKEN_KEY = 'adminToken';
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token) {
+export const setToken = (token) => {
   localStorage.setItem(TOKEN_KEY, token);
-}
+};
 
-export function removeToken() {
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
+
+export const isAuthenticated = () => !!getToken();
+
+export const removeToken = () => {
   localStorage.removeItem(TOKEN_KEY);
-}
-
-export function isAuthenticated() {
-  return !!getToken();
-}
+};

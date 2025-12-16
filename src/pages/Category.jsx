@@ -29,7 +29,12 @@ import {
 } from "@mui/material";
 import CSVUploader from "./CategoryCsv";
 
-const API_URL = "https://backend.minutos.shop/api/category";
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "src/services/categoryService";
 
 // Cloudinary configuration
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
@@ -49,15 +54,18 @@ export default function Category() {
   const rowsPerPage = 10;
 
   // Fetch categories
-  const fetchCategories = async () => {
-    setLoading(true);
+ const fetchCategories = async () => {
+  setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/getcategories`);
-      setCategories(res.data.categories || []);
-      setFilteredCategories(res.data.categories || []);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      setSnackbar({ open: true, message: "Error fetching categories", severity: "error" });
+      const data = await getCategories();
+      setCategories(data.categories || []);
+      setFilteredCategories(data.categories || []);
+    } catch {
+      setSnackbar({
+        open: true,
+        message: "Failed to fetch categories",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -66,6 +74,8 @@ export default function Category() {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  
 
   // Filter categories based on search term
   useEffect(() => {
@@ -140,31 +150,50 @@ export default function Category() {
   const handleSubmit = async (values, { resetForm }) => {
     try {
       if (editingCategory) {
-        await axios.put(`${API_URL}/updatecategories/${editingCategory._id}`, values);
-        setSnackbar({ open: true, message: "Category updated successfully", severity: "success" });
+        await updateCategory(editingCategory._id, values);
+        setSnackbar({
+          open: true,
+          message: "Category updated successfully",
+          severity: "success",
+        });
       } else {
-        await axios.post(`${API_URL}/categories`, values);
-        setSnackbar({ open: true, message: "Category added successfully", severity: "success" });
+        await createCategory(values);
+        setSnackbar({
+          open: true,
+          message: "Category created successfully",
+          severity: "success",
+        });
       }
+
       resetForm();
       setEditingCategory(null);
       fetchCategories();
-    } catch (error) {
-      console.error("Error saving category:", error);
-      setSnackbar({ open: true, message: "Error saving category", severity: "error" });
+    } catch {
+      setSnackbar({
+        open: true,
+        message: "Failed to save category",
+        severity: "error",
+      });
     }
   };
 
   // Delete category
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
+   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
     try {
-      await axios.delete(`${API_URL}/deletecategories/${id}`);
-      setSnackbar({ open: true, message: "Category deleted", severity: "success" });
+      await deleteCategory(id);
+      setSnackbar({
+        open: true,
+        message: "Category deleted",
+        severity: "success",
+      });
       fetchCategories();
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      setSnackbar({ open: true, message: "Error deleting category", severity: "error" });
+    } catch {
+      setSnackbar({
+        open: true,
+        message: "Delete failed",
+        severity: "error",
+      });
     }
   };
 

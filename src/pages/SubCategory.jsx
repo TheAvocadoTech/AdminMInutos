@@ -1,6 +1,5 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable perfectionist/sort-named-imports */
-/* eslint-disable react/prop-types */
 /* eslint-disable */
 
 import axios from "axios";
@@ -32,10 +31,15 @@ import {
   Alert,
 } from "@mui/material";
 import CSVUploaderSub from "./SubCategoryCSv";
-
-// API endpoints
-const SUBCATEGORY_API = "https://backend.minutos.shop/api/subcategory";
-const CATEGORY_API = "https://backend.minutos.shop/api/category/getcategories";
+import {
+  getCategories,
+  } from "src/services/categoryService";
+import {
+  getSubCategories,
+  createSubcategory,
+  updateSubcategory,
+  deleteSubcategory,
+} from "src/services/SubcategoryService";
 
 // Cloudinary config
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
@@ -57,10 +61,13 @@ export default function SubCategory() {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(CATEGORY_API);
-      setCategories(res.data.categories || []);
+      const data = await getCategories();
+      console.log("Categories data:", data);
+      // Service returns res.data directly, so data.categories contains the array
+      setCategories(data.categories || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
+      setSnackbar({ open: true, message: "Error fetching categories", severity: "error" });
     }
   };
 
@@ -68,8 +75,10 @@ export default function SubCategory() {
   const fetchSubcategories = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(SUBCATEGORY_API);
-      setSubcategories(res.data.subcategories || []);
+      const data = await getSubCategories();
+      console.log("Subcategories data:", data);
+      // Service returns res.data directly, so data.subcategories contains the array
+      setSubcategories(data.subcategories || []);
     } catch (error) {
       console.error("Error fetching subcategories:", error);
       setSnackbar({ open: true, message: "Error fetching subcategories", severity: "error" });
@@ -97,6 +106,7 @@ export default function SubCategory() {
       );
       return response.data.secure_url;
     } catch (error) {
+      console.error("Cloudinary upload error:", error);
       throw new Error("Failed to upload image to Cloudinary");
     }
   };
@@ -119,7 +129,7 @@ export default function SubCategory() {
     try {
       const imageUrl = await uploadImageToCloudinary(file);
       setFieldValue("image", imageUrl);
-      setSnackbar({ open: true, message: "Image uploaded", severity: "success" });
+      setSnackbar({ open: true, message: "Image uploaded successfully", severity: "success" });
     } catch (error) {
       setSnackbar({ open: true, message: error.message, severity: "error" });
     } finally {
@@ -127,33 +137,43 @@ export default function SubCategory() {
     }
   };
 
-  // Submit (Add/Update)
+  // Submit (Add/Update) - FIXED: Using service functions
   const handleSubmit = async (values, { resetForm }) => {
     try {
       if (editingSub) {
-        await axios.put(`${SUBCATEGORY_API}/${editingSub._id}`, values);
-        setSnackbar({ open: true, message: "Subcategory updated", severity: "success" });
+        await updateSubcategory(editingSub._id, values);
+        setSnackbar({ open: true, message: "Subcategory updated successfully", severity: "success" });
       } else {
-        await axios.post(SUBCATEGORY_API, values);
-        setSnackbar({ open: true, message: "Subcategory added", severity: "success" });
+        await createSubcategory(values);
+        setSnackbar({ open: true, message: "Subcategory added successfully", severity: "success" });
       }
       resetForm();
       setEditingSub(null);
       fetchSubcategories();
     } catch (error) {
-      setSnackbar({ open: true, message: "Error saving subcategory", severity: "error" });
+      console.error("Error saving subcategory:", error);
+      setSnackbar({ 
+        open: true, 
+        message: error.response?.data?.message || "Error saving subcategory", 
+        severity: "error" 
+      });
     }
   };
 
-  // Delete
+  // Delete - FIXED: Using service function
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this subcategory?")) return;
+    if (!window.confirm("Are you sure you want to delete this subcategory?")) return;
     try {
-      await axios.delete(`${SUBCATEGORY_API}/${id}`);
-      setSnackbar({ open: true, message: "Deleted successfully", severity: "success" });
+      await deleteSubcategory(id);
+      setSnackbar({ open: true, message: "Subcategory deleted successfully", severity: "success" });
       fetchSubcategories();
     } catch (error) {
-      setSnackbar({ open: true, message: "Error deleting subcategory", severity: "error" });
+      console.error("Error deleting subcategory:", error);
+      setSnackbar({ 
+        open: true, 
+        message: error.response?.data?.message || "Error deleting subcategory", 
+        severity: "error" 
+      });
     }
   };
 
@@ -163,7 +183,7 @@ export default function SubCategory() {
   // Filter subcategories based on search query
   const filteredSubs = subcategories.filter(
     (sub) =>
-      sub.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sub.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -194,16 +214,16 @@ export default function SubCategory() {
         Subcategory Management
       </Typography>
 
-      {/* Excel Upload */}
+      {/* CSV Upload */}
       <Box sx={{ mb: 3 }}>
-        <CSVUploaderSub />
+        <CSVUploaderSub onUploadSuccess={fetchSubcategories} />
         <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
           <Typography variant="body2">
-            💡 You can upload multiple products at once using a CSV file.  
-            Make sure your CSV includes columns like <b>Name</b>, <b>Category</b>, <b>Price</b>, and <b>Image URL</b>.  
+            💡 You can upload multiple subcategories at once using a CSV file.  
+            Make sure your CSV includes columns like <b>Name</b>, <b>Category</b>, and <b>Image URL</b>.  
             <br />
             Example:  
-            <code>Product Name, Category, Price, Image URL</code>
+            <code>Subcategory Name, Category, Image URL</code>
           </Typography>
         </Alert>
       </Box>
@@ -217,21 +237,42 @@ export default function SubCategory() {
         }}
         enableReinitialize
         onSubmit={handleSubmit}
+        validate={(values) => {
+          const errors = {};
+          if (!values.name) errors.name = "Name is required";
+          if (!values.category) errors.category = "Category is required";
+          return errors;
+        }}
       >
-        {({ resetForm, setFieldValue, values }) => (
+        {({ resetForm, setFieldValue, values, errors, touched }) => (
           <Form style={{ marginBottom: "2rem" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
-              <Field as={TextField} name="name" label="Subcategory Name" fullWidth />
+              <Field 
+                as={TextField} 
+                name="name" 
+                label="Subcategory Name" 
+                fullWidth 
+                error={touched.name && Boolean(errors.name)}
+                helperText={touched.name && errors.name}
+              />
 
-              <FormControl fullWidth>
+              <FormControl fullWidth error={touched.category && Boolean(errors.category)}>
                 <InputLabel>Category</InputLabel>
                 <Field as={Select} name="category" value={values.category}>
+                  <MenuItem value="">
+                    <em>Select a category</em>
+                  </MenuItem>
                   {categories.map((cat) => (
                     <MenuItem key={cat._id} value={cat._id}>
                       {cat.name}
                     </MenuItem>
                   ))}
                 </Field>
+                {touched.category && errors.category && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+                    {errors.category}
+                  </Typography>
+                )}
               </FormControl>
 
               <Field as={TextField} name="image" label="Image URL" fullWidth />
@@ -258,7 +299,13 @@ export default function SubCategory() {
                   <img
                     src={values.image}
                     alt="Preview"
-                    style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                    style={{ 
+                      width: "100px", 
+                      height: "100px", 
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                      border: "1px solid #e0e0e0"
+                    }}
                     onError={(e) => {
                       e.target.style.display = "none";
                     }}
@@ -273,18 +320,20 @@ export default function SubCategory() {
                   disabled={uploading}
                   sx={redButtonStyle}
                 >
-                  {editingSub ? "Update" : "Add"}
+                  {editingSub ? "Update Subcategory" : "Add Subcategory"}
                 </Button>
                 {editingSub && (
-                  <IconButton
+                  <Button
+                    variant="outlined"
                     color="secondary"
                     onClick={() => {
                       setEditingSub(null);
                       resetForm();
                     }}
+                    startIcon={<MdClear />}
                   >
-                    <MdClear />
-                  </IconButton>
+                    Cancel
+                  </Button>
                 )}
               </Box>
             </Box>
@@ -301,8 +350,9 @@ export default function SubCategory() {
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
-            setPage(1); // reset page when searching
+            setPage(1);
           }}
+          placeholder="Search by name or category..."
         />
       </Box>
 
@@ -313,9 +363,9 @@ export default function SubCategory() {
         </Box>
       ) : (
         <>
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
             <Table>
-              <TableHead>
+              <TableHead sx={{ bgcolor: '#f5f5f5' }}>
                 <TableRow>
                   <TableCell><b>Name</b></TableCell>
                   <TableCell><b>Category</b></TableCell>
@@ -324,36 +374,71 @@ export default function SubCategory() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedSubs.map((sub) => (
-                  <TableRow key={sub._id}>
-                    <TableCell>{sub.name}</TableCell>
-                    <TableCell>{sub.category?.name || "N/A"}</TableCell>
-                    <TableCell>
-                      <img
-                        src={sub.image}
-                        alt={sub.name}
-                        width="80"
-                        height="80"
-                        style={{ objectFit: "cover", borderRadius: "4px" }}
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton color="primary" onClick={() => setEditingSub(sub)}>
-                        <MdEdit />
-                      </IconButton>
-                      <IconButton color="error" onClick={() => handleDelete(sub._id)}>
-                        <MdDelete />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredSubs.length === 0 && (
+                {paginatedSubs.length > 0 ? (
+                  paginatedSubs.map((sub) => (
+                    <TableRow key={sub._id} hover>
+                      <TableCell>{sub.name}</TableCell>
+                      <TableCell>{sub.category?.name || "N/A"}</TableCell>
+                      <TableCell>
+                        {sub.image ? (
+                          <img
+                            src={sub.image}
+                            alt={sub.name}
+                            width="80"
+                            height="80"
+                            style={{ 
+                              objectFit: "cover", 
+                              borderRadius: "4px",
+                              border: "1px solid #e0e0e0"
+                            }}
+                            onError={(e) => {
+                              e.target.src = "https://via.placeholder.com/80?text=No+Image";
+                            }}
+                          />
+                        ) : (
+                          <Box 
+                            sx={{ 
+                              width: 80, 
+                              height: 80, 
+                              bgcolor: '#f5f5f5', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              borderRadius: 1
+                            }}
+                          >
+                            <Typography variant="caption" color="textSecondary">
+                              No Image
+                            </Typography>
+                          </Box>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton 
+                          color="primary" 
+                          onClick={() => setEditingSub(sub)}
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </IconButton>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleDelete(sub._id)}
+                          title="Delete"
+                        >
+                          <MdDelete />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={4} align="center">
-                      No subcategories found
+                      <Typography variant="body1" color="textSecondary" sx={{ py: 3 }}>
+                        {searchQuery 
+                          ? "No subcategories found matching your search" 
+                          : "No subcategories available. Add one to get started!"}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -362,14 +447,16 @@ export default function SubCategory() {
           </TableContainer>
 
           {/* Pagination */}
-          <Box display="flex" justifyContent="center" mt={2}>
-            <Pagination
-              count={Math.ceil(filteredSubs.length / rowsPerPage)}
-              page={page}
-              onChange={handleChangePage}
-              color="primary"
-            />
-          </Box>
+          {filteredSubs.length > rowsPerPage && (
+            <Box display="flex" justifyContent="center" mt={2}>
+              <Pagination
+                count={Math.ceil(filteredSubs.length / rowsPerPage)}
+                page={page}
+                onChange={handleChangePage}
+                color="primary"
+              />
+            </Box>
+          )}
         </>
       )}
 
@@ -378,8 +465,16 @@ export default function SubCategory() {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        message={snackbar.message}
-      />
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

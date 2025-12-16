@@ -16,8 +16,13 @@ import {
   Typography,
   Chip,
 } from "@mui/material";
+import {
+  getBanner,
+createBanner,
+  
+} from "src/services/BannerService";
 
-const BANNER_API_URL = "https://backend.minutos.shop/api/ads";
+// const BANNER_API_URL = "https://backend.minutos.shop/api/ads";
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
 const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
 
@@ -177,17 +182,23 @@ export default function BannerManager() {
 
   // Fetch banner
   const fetchBanner = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${BANNER_API_URL}/get`);
-      setBanner(res.data.banner || null);
-    } catch (error) {
-      console.error("Error fetching banner:", error);
-      setSnackbar({ open: true, message: "Error fetching banner", severity: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const res = await getBanner();
+
+    // ✅ res already contains { success, banner }
+    setBanner(res.banner || null);
+  } catch (error) {
+    console.error("Error fetching banner:", error);
+    setSnackbar({
+      open: true,
+      message: "Error fetching banner",
+      severity: "error",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchBanner();
@@ -208,16 +219,29 @@ export default function BannerManager() {
   };
 
   // Save banners
-  const handleSubmit = async (values) => {
-    try {
-      await axios.post(`${BANNER_API_URL}/create-or-update`, values);
-      setSnackbar({ open: true, message: "✅ Banner saved successfully", severity: "success" });
-      fetchBanner();
-    } catch (error) {
-      console.error("Error saving banner:", error);
-      setSnackbar({ open: true, message: "❌ Error saving banner", severity: "error" });
-    }
-  };
+  
+const handleSubmit = async (values) => {
+  try {
+    // values = banner form data
+    await createBanner(values);
+
+    setSnackbar({
+      open: true,
+      message: "✅ Banner saved successfully",
+      severity: "success",
+    });
+
+    fetchBanner(); // refresh banners list
+  } catch (error) {
+    console.error("Error saving banner:", error);
+
+    setSnackbar({
+      open: true,
+      message: "❌ Error saving banner",
+      severity: "error",
+    });
+  }
+};
 
   return (
     <Box sx={{ p: 4, backgroundColor: "#ffffff", minHeight: "100vh" }}>
