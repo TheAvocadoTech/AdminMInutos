@@ -1,26 +1,26 @@
-import axios from 'axios';
+/* eslint-disable perfectionist/sort-named-imports */
+/* eslint-disable react/prop-types */
+/* eslint-disable */
 import { useState, useEffect } from 'react';
 
 import { alpha } from '@mui/material/styles';
-// eslint-disable-next-line perfectionist/sort-imports
 import Card from '@mui/material/Card';
 import Container from '@mui/material/Container';
-// eslint-disable-next-line perfectionist/sort-imports
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
-// eslint-disable-next-line perfectionist/sort-imports
 import Typography from '@mui/material/Typography';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
 
 import Scrollbar from 'src/components/scrollbar';
+import { getAllUsers } from 'src/services/authService';
 
 import TableNoData from '../table-no-data';
 import TableEmptyRows from '../table-empty-rows';
-// eslint-disable-next-line perfectionist/sort-imports
 import UserTableHead from '../user-table-head';
-// eslint-disable-next-line perfectionist/sort-imports
 import UserTableRow from '../user-table-row';
 import UserTableToolbar from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
@@ -35,17 +35,47 @@ export default function UserPage() {
   const [filterName, setFilterName] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch users from API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get('https://backend.minutos.shop/api/auth/all');
-        setUsers(res.data.users || []);
-      } catch (err) {
-        console.error('Error fetching users:', err);
+        setLoading(true);
+        const data = await getAllUsers();
+
+        console.log('API Response:', data);
+
+        // Extract users array from the response
+        const usersArray = data?.users || data?.data || data || [];
+
+        console.log('Users array:', usersArray);
+
+        // Format the data - no changes needed, just clean mapping
+        const formattedUsers = usersArray.map((user, index) => {
+          console.log(`User ${index}:`, user);
+          console.log(`Phone Number for user ${index}:`, user.phoneNumber);
+          
+          return {
+            _id: user._id,
+            phoneNumber: user.phoneNumber, // Direct mapping, no fallback
+            isVerified: user.isVerified || false,
+            isAdmin: user.isAdmin || false,
+            role: user.role || 'USER',
+            createdAt: user.createdAt || new Date().toISOString(),
+            updatedAt: user.updatedAt || new Date().toISOString(),
+          };
+        });
+
+        console.log('Formatted users:', formattedUsers);
+        setUsers(formattedUsers);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchUsers();
   }, []);
 
@@ -61,7 +91,7 @@ export default function UserPage() {
   // Select all
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelecteds = users.map((n) => n.phoneNumber);
+      const newSelecteds = users.map((n) => n._id);
       setSelected(newSelecteds);
       return;
     }
@@ -69,11 +99,11 @@ export default function UserPage() {
   };
 
   // Select one
-  const handleClick = (event, name) => {
-    const selectedIndex = selected.indexOf(name);
+  const handleClick = (event, id) => {
+    const selectedIndex = selected.indexOf(id);
     let newSelected = [];
     if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, name);
+      newSelected = newSelected.concat(selected, id);
     } else if (selectedIndex === 0) {
       newSelected = newSelected.concat(selected.slice(1));
     } else if (selectedIndex === selected.length - 1) {
@@ -91,6 +121,7 @@ export default function UserPage() {
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
+  
   const handleChangeRowsPerPage = (event) => {
     setPage(0);
     setRowsPerPage(parseInt(event.target.value, 10));
@@ -110,6 +141,32 @@ export default function UserPage() {
 
   const notFound = !dataFiltered.length && !!filterName;
 
+  if (loading) {
+    return (
+      <Container>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          mb={5}
+        >
+          <Typography
+            variant="h4"
+            sx={{
+              color: '#1f2937',
+              fontWeight: 700,
+            }}
+          >
+            Total Login Users
+          </Typography>
+        </Stack>
+        <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Typography>Loading users...</Typography>
+        </Card>
+      </Container>
+    );
+  }
+
   return (
     <Container>
       {/* Header */}
@@ -126,7 +183,7 @@ export default function UserPage() {
             fontWeight: 700,
           }}
         >
-          Total Login Users
+          Total Login Users ({users.length})
         </Typography>
       </Stack>
 
@@ -143,10 +200,11 @@ export default function UserPage() {
           numSelected={selected.length}
           filterName={filterName}
           onFilterName={handleFilterByName}
+          selectedUsers={selected}
+          users={users}
           sx={{
             backgroundColor: '#f9fafb',
             borderBottom: '1px solid #e5e7eb',
-            // Red button styling for any buttons in toolbar
             '& button': {
               bgcolor: '#dc2626',
               color: 'white',
@@ -160,7 +218,7 @@ export default function UserPage() {
         {/* Scrollable Table */}
         <Scrollbar>
           <TableContainer sx={{ overflow: 'unset' }}>
-            <Table sx={{ minWidth: 800 }}>
+            <Table sx={{ minWidth: 1000 }}>
               {/* Table Header */}
               <UserTableHead
                 order={order}
@@ -170,11 +228,14 @@ export default function UserPage() {
                 onRequestSort={handleSort}
                 onSelectAllClick={handleSelectAllClick}
                 headLabel={[
-                  { id: 'phoneNumber', label: 'Phone Number' },
+                  { id: '_id', label: 'User ID', align: 'left' },
+                  { id: 'phoneNumber', label: 'Phone Number', align: 'left' },
                   { id: 'isVerified', label: 'Verified', align: 'center' },
-                  { id: 'createdAt', label: 'Created At' },
-                  { id: 'updatedAt', label: 'Updated At' },
-                  { id: '' },
+                  { id: 'isAdmin', label: 'Admin', align: 'center' },
+                  { id: 'role', label: 'Role', align: 'center' },
+                  { id: 'createdAt', label: 'Created At', align: 'left' },
+                  { id: 'updatedAt', label: 'Updated At', align: 'left' },
+                  { id: 'actions', label: 'Actions', align: 'center' },
                 ]}
                 sx={{
                   '& th': {
@@ -187,48 +248,54 @@ export default function UserPage() {
 
               {/* Table Rows */}
               <TableBody>
-                {dataFiltered
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((row) => (
-                    <UserTableRow
-                      key={row._id}
-                      name={row.phoneNumber}
-                      role={row.isVerified ? 'Verified User' : 'Unverified'}
-                      status={row.isVerified ? 'active' : 'inactive'}
-                      statusColor={row.isVerified ? 'success' : 'error'}
-                      company={`Created: ${new Date(
-                        row.createdAt
-                      ).toLocaleDateString()}`}
-                      avatarUrl={null}
-                      isVerified={row.isVerified}
-                      selected={selected.indexOf(row.phoneNumber) !== -1}
-                      handleClick={(event) =>
-                        handleClick(event, row.phoneNumber)
-                      }
-                      createdAt={row.createdAt}
-                      updatedAt={row.updatedAt}
-                      // Red button styling for action buttons in rows
-                      sx={{
-                        '& button': {
-                          color: '#dc2626',
-                          '&:hover': {
-                            bgcolor: alpha('#dc2626', 0.04),
-                          },
-                        },
-                        '& .MuiIconButton-root': {
-                          color: '#dc2626',
-                          '&:hover': {
-                            bgcolor: alpha('#dc2626', 0.04),
-                          },
-                        },
-                      }}
-                    />
-                  ))}
+                {dataFiltered.length > 0 ? (
+                  dataFiltered
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((row) => {
+                      console.log('Rendering row with phone:', row.phoneNumber);
+                      return (
+                        <UserTableRow
+                          key={row._id}
+                          id={row._id}
+                          phoneNumber={row.phoneNumber}
+                          isVerified={row.isVerified}
+                          isAdmin={row.isAdmin}
+                          role={row.role}
+                          selected={selected.indexOf(row._id) !== -1}
+                          handleClick={(event) => handleClick(event, row._id)}
+                          createdAt={row.createdAt}
+                          updatedAt={row.updatedAt}
+                          sx={{
+                            '& button': {
+                              color: '#dc2626',
+                              '&:hover': {
+                                bgcolor: alpha('#dc2626', 0.04),
+                              },
+                            },
+                            '& .MuiIconButton-root': {
+                              color: '#dc2626',
+                              '&:hover': {
+                                bgcolor: alpha('#dc2626', 0.04),
+                              },
+                            },
+                          }}
+                        />
+                      );
+                    })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                      <Typography variant="body1" color="text.secondary">
+                        {filterName ? 'No users found matching your search' : 'No users available'}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
 
                 {/* Empty Rows */}
                 <TableEmptyRows
                   height={77}
-                  emptyRows={emptyRows(page, rowsPerPage, users.length)}
+                  emptyRows={emptyRows(page, rowsPerPage, dataFiltered.length)}
                 />
 
                 {notFound && <TableNoData query={filterName} />}
@@ -241,7 +308,7 @@ export default function UserPage() {
         <TablePagination
           page={page}
           component="div"
-          count={users.length}
+          count={dataFiltered.length}
           rowsPerPage={rowsPerPage}
           onPageChange={handleChangePage}
           rowsPerPageOptions={[5, 10, 25]}

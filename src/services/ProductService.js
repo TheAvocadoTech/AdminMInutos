@@ -14,25 +14,25 @@ API.interceptors.request.use((config) => {
 });
 
 // Get all subcategories
-export const getSubCategories = async () => {
-  const res = await API.get('/subcategory');
+export const getProduct = async () => {
+  const res = await API.get('/product');
   return res.data;
 };
 
 // Create subcategory (ADMIN ONLY)
-export const createSubcategory = async (payload) => {
-  const res = await API.post('/subcategory', payload);
+export const createProduct = async (payload) => {
+  const res = await API.post('product/create', payload);
   return res.data;
 };
 
 // Update subcategory (ADMIN ONLY)
-export const updateSubcategory = async (id, payload) => {
-  const res = await API.put(`/subcategory/${id}`, payload);
+export const updateProduct = async (id, payload) => {
+  const res = await API.put(`/product/${id}`, payload);
   return res.data;
 };
 
 // Delete subcategory (ADMIN ONLY)
-export const deleteSubcategory = async (id, payload) => {
-  const res = await API.delete(`/subcategory/${id}`, payload);
+export const deleteProduct = async (id, payload) => {
+  const res = await API.delete(`/product/${id}`, payload);
   return res.data;
 };

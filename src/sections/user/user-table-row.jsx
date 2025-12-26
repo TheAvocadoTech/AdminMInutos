@@ -18,13 +18,15 @@ import Iconify from 'src/components/iconify';
 
 export default function UserTableRow({
   selected,
-  name,
-  avatarUrl,
-  company,
-  role,
+  id,
+  phoneNumber,
   isVerified,
-  status,
+  isAdmin,
+  role,
+  createdAt,
+  updatedAt,
   handleClick,
+  sx,
 }) {
   const [open, setOpen] = useState(null);
 
@@ -36,33 +38,85 @@ export default function UserTableRow({
     setOpen(null);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  console.log('UserTableRow - Phone Number:', phoneNumber);
+
   return (
     <>
-      <TableRow hover tabIndex={-1} role="checkbox" selected={selected}>
+      <TableRow hover tabIndex={-1} role="checkbox" selected={selected} sx={sx}>
         <TableCell padding="checkbox">
           <Checkbox disableRipple checked={selected} onChange={handleClick} />
         </TableCell>
 
-        <TableCell component="th" scope="row" padding="none">
+        {/* User ID */}
+        <TableCell component="th" scope="row">
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Avatar alt={name} src={avatarUrl} />
+            <Avatar sx={{ bgcolor: '#dc2626' }}>
+              {phoneNumber ? phoneNumber.slice(-2) : '??'}
+            </Avatar>
             <Typography variant="subtitle2" noWrap>
-              {name}
+              {id}
             </Typography>
           </Stack>
         </TableCell>
 
-        <TableCell>{company}</TableCell>
-
-        <TableCell>{role}</TableCell>
-
-        <TableCell align="center">{isVerified ? 'Yes' : 'No'}</TableCell>
-
+        {/* Phone Number */}
         <TableCell>
-          <Label color={(status === 'banned' && 'error') || 'success'}>{status}</Label>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {phoneNumber || 'N/A'}
+          </Typography>
         </TableCell>
 
-        <TableCell align="right">
+        {/* Verified Status */}
+        <TableCell align="center">
+          <Label color={isVerified ? 'success' : 'error'}>
+            {isVerified ? 'Yes' : 'No'}
+          </Label>
+        </TableCell>
+
+        {/* Admin Status */}
+        <TableCell align="center">
+          <Label color={isAdmin ? 'info' : 'default'}>
+            {isAdmin ? 'Yes' : 'No'}
+          </Label>
+        </TableCell>
+
+        {/* Role */}
+        <TableCell align="center">
+          <Typography variant="body2" sx={{ textTransform: 'uppercase' }}>
+            {role || 'USER'}
+          </Typography>
+        </TableCell>
+
+        {/* Created At */}
+        <TableCell>
+          <Typography variant="body2" color="text.secondary">
+            {formatDate(createdAt)}
+          </Typography>
+        </TableCell>
+
+        {/* Updated At */}
+        <TableCell>
+          <Typography variant="body2" color="text.secondary">
+            {formatDate(updatedAt)}
+          </Typography>
+        </TableCell>
+
+        {/* Actions */}
+        <TableCell align="center">
           <IconButton onClick={handleOpenMenu}>
             <Iconify icon="eva:more-vertical-fill" />
           </IconButton>
@@ -94,12 +148,14 @@ export default function UserTableRow({
 }
 
 UserTableRow.propTypes = {
-  avatarUrl: PropTypes.any,
-  company: PropTypes.any,
+  selected: PropTypes.bool,
+  id: PropTypes.string,
+  phoneNumber: PropTypes.string,
+  isVerified: PropTypes.bool,
+  isAdmin: PropTypes.bool,
+  role: PropTypes.string,
+  createdAt: PropTypes.string,
+  updatedAt: PropTypes.string,
   handleClick: PropTypes.func,
-  isVerified: PropTypes.any,
-  name: PropTypes.any,
-  role: PropTypes.any,
-  selected: PropTypes.any,
-  status: PropTypes.string,
+  sx: PropTypes.object,
 };

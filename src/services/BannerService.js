@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: 'https://api.minutos.in/api',
 });
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('adminToken');

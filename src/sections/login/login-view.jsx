@@ -53,9 +53,8 @@ const handleSubmit = async (e) => {
   try {
     const data = await adminLogin(email, password);
 
-    if (!data?.token || !data?.user?.isAdmin) {
+    if (!data?.token || data?.user?.role !== "ADMIN") {
       setError("Unauthorized access");
-      setLoading(false);
       return;
     }
 

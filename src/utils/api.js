@@ -4,7 +4,7 @@ import axios from 'axios';
 import { getToken } from './auth';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000', // HARD-CODED URL
+  baseURL: 'https://api.minutos.in', // HARD-CODED URL
   headers: { 'Content-Type': 'application/json' },
 });
 

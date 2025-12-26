@@ -1,8 +1,8 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable */
-import axios from "axios";
 import { Field, FieldArray, Formik, Form } from "formik";
 import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import {
   Alert,
   Box,
@@ -24,13 +24,19 @@ import {
   Card,
   CardContent,
   CardMedia,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { MdEdit, MdDelete } from "react-icons/md";
 
-const API_URL = "https://backend.minutos.shop/api/product";
-const CATEGORY_API = "https://backend.minutos.shop/api/category/getcategories";
-const SUBCATEGORY_API = "https://backend.minutos.shop/api/subcategory/";
+// Import services
+import { getCategories } from "src/services/categoryService";
+import { getSubCategories } from "src/services/SubcategoryService";
+import { createProduct, deleteProduct, getProduct, updateProduct } from "src/services/ProductService";
 
+// Cloudinary configuration
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
 const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
 
@@ -43,6 +49,11 @@ export default function ProductData() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, productId: null, productName: "" });
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 20;
 
   useEffect(() => {
     if (editingProduct?.category?.[0]?._id) {
@@ -50,25 +61,22 @@ export default function ProductData() {
     }
   }, [editingProduct]);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const PRODUCTS_PER_PAGE = 20;
-
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
 
+  // Fetch all data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, subRes, prodRes] = await Promise.all([
-          axios.get(CATEGORY_API),
-          axios.get(SUBCATEGORY_API),
-          axios.get(API_URL),
+        const [catData, subData, prodData] = await Promise.all([
+          getCategories(),
+          getSubCategories(),
+          getProduct(),
         ]);
-        setCategories(catRes.data.categories || []);
-        setSubCategories(subRes.data.subcategories || []);
-        setProducts(prodRes.data.data || []);
+        setCategories(catData.categories || []);
+        setSubCategories(subData.subcategories || []);
+        setProducts(prodData.data || []);
       } catch (err) {
         console.error(err);
         showSnackbar("Failed to load data", "error");
@@ -127,21 +135,67 @@ export default function ProductData() {
     }
   }, []);
 
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    // Scroll to top to show the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (productId) => {
+    setDeleteDialog({ 
+      open: true, 
+      productId, 
+      productName: products.find(p => p._id === productId)?.productName || "this product" 
+    });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await deleteProduct(deleteDialog.productId);
+      setProducts(prev => prev.filter(p => p._id !== deleteDialog.productId));
+      showSnackbar("Product deleted successfully");
+      setDeleteDialog({ open: false, productId: null, productName: "" });
+      
+      // Adjust current page if needed
+      if (currentProducts.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      }
+    } catch (err) {
+      console.error(err);
+      showSnackbar("Failed to delete product", "error");
+    }
+  };
+
   const handleSubmit = async (values, { resetForm, setSubmitting }) => {
     setSubmitting(true);
     setLoading(true);
+
     try {
       if (editingProduct) {
-        await axios.put(`${API_URL}/id/${editingProduct._id}`, values);
+        const res = await updateProduct(editingProduct._id, values);
+
+        setProducts((prev) =>
+          prev.map((p) =>
+            p._id === editingProduct._id
+              ? {
+                  ...res.product,
+                  category: res.product.category || editingProduct.category,
+                  subCategory: res.product.subCategory || editingProduct.subCategory,
+                }
+              : p
+          )
+        );
+
         showSnackbar("Product updated successfully");
       } else {
-        await axios.post(`${API_URL}/create`, values);
+        const res = await createProduct(values);
+        setProducts((prev) => [res.product, ...prev]);
         showSnackbar("Product added successfully");
       }
-      const prodRes = await axios.get(API_URL);
-      setProducts(prodRes.data.data || []);
+
       resetForm();
       setEditingProduct(null);
+      setCurrentPage(1);
     } catch (err) {
       console.error(err);
       showSnackbar("Error saving product", "error");
@@ -151,18 +205,8 @@ export default function ProductData() {
     }
   };
 
-  const handleEdit = (product) => setEditingProduct(product);
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-    try {
-      await axios.delete(`${API_URL}/id/${id}`);
-      showSnackbar("Product deleted successfully");
-      setProducts(products.filter((p) => p._id !== id));
-    } catch (err) {
-      console.error(err);
-      showSnackbar("Failed to delete product", "error");
-    }
+  const handleCancelEdit = () => {
+    setEditingProduct(null);
   };
 
   const indexOfLastProduct = currentPage * PRODUCTS_PER_PAGE;
@@ -197,6 +241,15 @@ export default function ProductData() {
         Product Management
       </Typography>
 
+      {editingProduct && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Editing: {editingProduct.productName || editingProduct.name}
+          <Button size="small" onClick={handleCancelEdit} sx={{ ml: 2 }}>
+            Cancel Edit
+          </Button>
+        </Alert>
+      )}
+
       <Formik
         enableReinitialize
         initialValues={{
@@ -230,7 +283,7 @@ export default function ProductData() {
         }}
         onSubmit={handleSubmit}
       >
-        {({ values, errors, touched, setFieldValue, handleChange, isSubmitting }) => (
+        {({ values, errors, touched, setFieldValue, handleChange, isSubmitting, resetForm }) => (
           <Form>
             <Grid container spacing={3}>
               {/* Left Form */}
@@ -274,6 +327,8 @@ export default function ProductData() {
                           filterSubCategories(e.target.value);
                           setFieldValue("subCategory", "");
                         }}
+                        error={touched.category && !!errors.category}
+                        helperText={touched.category && errors.category}
                       >
                         <MenuItem value="">
                           <em>Select</em>
@@ -405,7 +460,14 @@ export default function ProductData() {
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <TextField name="stock" label="Stock" type="number" fullWidth value={values.stock} onChange={handleChange} />
+                      <TextField 
+                        name="stock" 
+                        label="Stock" 
+                        type="number" 
+                        fullWidth 
+                        value={values.stock} 
+                        onChange={handleChange} 
+                      />
                     </Grid>
                     <Grid item xs={6}>
                       <TextField
@@ -434,7 +496,13 @@ export default function ProductData() {
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <TextField name="price" label="Final Price" fullWidth value={values.price} InputProps={{ readOnly: true }} />
+                      <TextField 
+                        name="price" 
+                        label="Final Price" 
+                        fullWidth 
+                        value={values.price} 
+                        InputProps={{ readOnly: true }} 
+                      />
                     </Grid>
                   </Grid>
                 </Paper>
@@ -457,7 +525,20 @@ export default function ProductData() {
               </Grid>
             </Grid>
 
-            <Box textAlign="center" mt={4}>
+            <Box textAlign="center" mt={4} display="flex" justifyContent="center" gap={2}>
+              {editingProduct && (
+                <Button 
+                  type="button" 
+                  variant="outlined" 
+                  onClick={() => {
+                    resetForm();
+                    setEditingProduct(null);
+                  }}
+                  sx={redOutlinedButtonStyle}
+                >
+                  Cancel Edit
+                </Button>
+              )}
               <Button 
                 type="submit" 
                 variant="contained" 
@@ -488,60 +569,115 @@ export default function ProductData() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {currentProducts.map((p) => (
-                <TableRow key={p._id}>
-                  <TableCell>
-                    <img
-                      src={p.images?.[0] || "https://via.placeholder.com/50"}
-                      alt={p.name}
-                      style={{ width: 50, height: 50, borderRadius: 4, objectFit: "cover" }}
-                    />
-                  </TableCell>
-                  <TableCell>{p.productName || p.name}</TableCell>
-                  <TableCell>{p.category?.[0]?.name || "-"}</TableCell>
-                  <TableCell>{p.subCategory?.[0]?.name || "-"}</TableCell>
-                  <TableCell>{p.stock}</TableCell>
-                  <TableCell>₹{p.price}</TableCell>
-                  <TableCell>
-                    <IconButton color="black" onClick={() => handleEdit(p)}>
-                      <MdEdit />
-                    </IconButton>
-                    <IconButton color="black" onClick={() => handleDelete(p._id)}>
-                      <MdDelete />
-                    </IconButton>
+              {currentProducts.length > 0 ? (
+                currentProducts.map((p) => (
+                  <TableRow key={p._id} hover>
+                    <TableCell>
+                      <img
+                        src={p.images?.[0] || "https://via.placeholder.com/50"}
+                        alt={p.name}
+                        style={{ width: 50, height: 50, borderRadius: 4, objectFit: "cover" }}
+                      />
+                    </TableCell>
+                    <TableCell>{p.productName || p.name}</TableCell>
+                    <TableCell>{p.category?.[0]?.name || "-"}</TableCell>
+                    <TableCell>{p.subCategory?.[0]?.name || "-"}</TableCell>
+                    <TableCell>{p.stock}</TableCell>
+                    <TableCell>₹{p.price}</TableCell>
+                    <TableCell>
+                      <IconButton 
+                        color="primary" 
+                        onClick={() => handleEdit(p)}
+                        title="Edit"
+                      >
+                        <MdEdit />
+                      </IconButton>
+                      <IconButton 
+                        color="error" 
+                        onClick={() => handleDelete(p._id)}
+                        title="Delete"
+                      >
+                        <MdDelete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body1" color="textSecondary">
+                      No products found
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
 
         {/* Pagination */}
-        <Box mt={2} display="flex" justifyContent="center" alignItems="center" gap={2}>
-          <Button 
-            variant="outlined" 
-            disabled={currentPage === 1} 
-            onClick={handlePrevPage}
-            sx={redOutlinedButtonStyle}
-          >
-            Previous
-          </Button>
-          <Typography>
-            Page {currentPage} of {totalPages}
-          </Typography>
-          <Button 
-            variant="outlined" 
-            disabled={currentPage === totalPages} 
-            onClick={handleNextPage}
-            sx={redOutlinedButtonStyle}
-          >
-            Next
-          </Button>
-        </Box>
+        {products.length > 0 && (
+          <Box mt={2} mb={2} display="flex" justifyContent="center" alignItems="center" gap={2}>
+            <Button 
+              variant="outlined" 
+              disabled={currentPage === 1} 
+              onClick={handlePrevPage}
+              sx={redOutlinedButtonStyle}
+            >
+              Previous
+            </Button>
+            <Typography>
+              Page {currentPage} of {totalPages}
+            </Typography>
+            <Button 
+              variant="outlined" 
+              disabled={currentPage === totalPages} 
+              onClick={handleNextPage}
+              sx={redOutlinedButtonStyle}
+            >
+              Next
+            </Button>
+          </Box>
+        )}
       </Paper>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, productId: null, productName: "" })}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{deleteDialog.productName}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialog({ open: false, productId: null, productName: "" })}
+            sx={redOutlinedButtonStyle}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            variant="contained"
+            sx={redButtonStyle}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          {snackbar.message}
+        </Alert>
       </Snackbar>
     </Container>
   );

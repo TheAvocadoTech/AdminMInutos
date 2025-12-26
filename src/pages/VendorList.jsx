@@ -1,5 +1,3 @@
-/* eslint-disable perfectionist/sort-named-imports */
-/* eslint-disable react/prop-types */
 /* eslint-disable */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
@@ -16,65 +14,77 @@ import {
   TablePagination,
   Button,
   Stack,
+  Chip,
 } from "@mui/material";
 
-const USER_API = "https://backend.minutos.shop/api/vendor/getAllVendors";
-const UPDATE_VENDOR_API = "https://bakcend-n9kq.onrender.com/User/update"; // Update status API
+// APIs
+const USER_API = "https://api.minutos.in/api/vendor";
+const UPDATE_VENDOR_STATUS_API =
+  "https://api.minutos.in/api/vendor"; // /:id/status
 
 export default function VendorData() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // pagination states
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
-    fetchUsers();
+    fetchVendors();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchVendors = async () => {
     try {
       setLoading(true);
       const res = await axios.get(USER_API);
-
-      // FIX: API returns { message: "...", vendors: [...] }
       setUsers(res.data.vendors || []);
+      setTotalCount(res.data.count || 0);
     } catch (err) {
-      console.error("Error fetching users:", err);
+      console.error("Error fetching vendors", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // handle vendor accept/reject
-  const handleVendorStatus = async (id, status) => {
+  // 🔐 ADMIN ONLY STATUS UPDATE
+  const handleVendorStatus = async (vendorId, status) => {
     try {
-      await axios.put(`${UPDATE_VENDOR_API}/${id}`, { status });
+      const token = localStorage.getItem("token"); // admin JWT
 
-      // Update UI immediately
+      await axios.patch(
+        `${UPDATE_VENDOR_STATUS_API}/${vendorId}/status`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // update UI instantly
       setUsers((prev) =>
-        prev.map((u) => (u._id === id ? { ...u, status } : u))
+        prev.map((u) =>
+          u._id === vendorId ? { ...u, status } : u
+        )
       );
     } catch (err) {
-      console.error(`Error updating vendor ${status}:`, err);
+      console.error(
+        "Status update failed",
+        err.response?.data || err
+      );
+      alert(
+        err.response?.status === 403
+          ? "Admin access only"
+          : "Something went wrong"
+      );
     }
-  };
-
-  // pagination handlers
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: "bold" }}>
-        Vendor Management
+      <Typography variant="h4" fontWeight="bold" mb={3}>
+        Vendor Management (Admin)
       </Typography>
 
       <Paper>
@@ -82,16 +92,11 @@ export default function VendorData() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>First Name</TableCell>
-                <TableCell>Last Name</TableCell>
+                <TableCell>Name</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Phone</TableCell>
                 <TableCell>Business</TableCell>
                 <TableCell>City</TableCell>
-                <TableCell>State</TableCell>
-                <TableCell>Pin Code</TableCell>
-                <TableCell>Awards Nominee</TableCell>
-                <TableCell>Accept Messages</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Action</TableCell>
               </TableRow>
@@ -100,55 +105,77 @@ export default function VendorData() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={12} align="center">
+                  <TableCell colSpan={7} align="center">
                     Loading...
                   </TableCell>
                 </TableRow>
-              ) : users.length > 0 ? (
+              ) : users.length ? (
                 users
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((u) => (
-                    <TableRow key={u._id}>
-                      <TableCell>{u.firstName}</TableCell>
-                      <TableCell>{u.lastName}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>{u.phone}</TableCell>
-                      <TableCell>
-                        {u.businessName} ({u.businessType})
-                      </TableCell>
-                      <TableCell>{u.city}</TableCell>
-                      <TableCell>{u.state}</TableCell>
-                      <TableCell>{u.pinCode}</TableCell>
-                      <TableCell>{u.nominateForAwards ? "Yes" : "No"}</TableCell>
-                      <TableCell>{u.acceptMessages ? "Yes" : "No"}</TableCell>
-                      <TableCell>{u.status || "PENDING"}</TableCell>
+                  .map((u) => {
+                    const isFinal =
+                      u.status === "ACCEPTED" ||
+                      u.status === "REJECTED";
 
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            size="small"
-                            onClick={() => handleVendorStatus(u._id, "ACCEPTED")}
-                          >
-                            Accept
-                          </Button>
+                    return (
+                      <TableRow key={u._id}>
+                        <TableCell>
+                          {u.firstName} {u.lastName}
+                        </TableCell>
+                        <TableCell>{u.email}</TableCell>
+                        <TableCell>{u.phone}</TableCell>
+                        <TableCell>
+                          {u.businessName} ({u.businessType})
+                        </TableCell>
+                        <TableCell>{u.city}</TableCell>
 
-                          <Button
-                            variant="outlined"
-                            color="error"
+                        <TableCell>
+                          <Chip
+                            label={u.status || "PENDING"}
+                            color={
+                              u.status === "ACCEPTED"
+                                ? "success"
+                                : u.status === "REJECTED"
+                                ? "error"
+                                : "warning"
+                            }
                             size="small"
-                            onClick={() => handleVendorStatus(u._id, "REJECTED")}
-                          >
-                            Reject
-                          </Button>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <Stack direction="row" spacing={1}>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              disabled={isFinal}
+                              onClick={() =>
+                                handleVendorStatus(u._id, "ACCEPTED")
+                              }
+                            >
+                              Accept
+                            </Button>
+
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              disabled={isFinal}
+                              onClick={() =>
+                                handleVendorStatus(u._id, "REJECTED")
+                              }
+                            >
+                              Reject
+                            </Button>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={12} align="center">
+                  <TableCell colSpan={7} align="center">
                     No vendors found
                   </TableCell>
                 </TableRow>
@@ -157,14 +184,16 @@ export default function VendorData() {
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
         <TablePagination
           component="div"
-          count={users.length}
+          count={totalCount}
           page={page}
-          onPageChange={handleChangePage}
+          onPageChange={(_, p) => setPage(p)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
           rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Paper>

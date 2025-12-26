@@ -45,7 +45,7 @@ export default function Router() {
         { path: 'products', element: <Product /> },
         { path: 'VendorList', element: <Vendor /> },
         { path: 'order', element: <OrderPage /> },
-        { path: 'blog', element: <BlogPage /> },
+        // { path: 'blog', element: <BlogPage /> },
       ],
     },
 

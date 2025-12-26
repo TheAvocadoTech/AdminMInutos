@@ -22,7 +22,7 @@ const ExcelUploadComponent = () => {
     // Fetch categories and subcategories from your API
     const fetchCategories = async () => {
       try {
-        const response = await fetch('https://backend.minutos.shop/api/category/getcategories');
+        const response = await fetch('https://api.minutos.in/api/category/getcategories');
         const data = await response.json();
         if (data.success) {
           setCategories(data.categories || []);
@@ -34,7 +34,7 @@ const ExcelUploadComponent = () => {
 
     const fetchSubCategories = async () => {
       try {
-        const response = await fetch('https://backend.minutos.shop/api/subcategory/');
+        const response = await fetch('https://api.minutos.in/api/subcategory/');
         const data = await response.json();
         if (data.success) {
           setSubCategories(data.subCategories || []);
