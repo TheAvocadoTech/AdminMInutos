@@ -43,7 +43,7 @@ import {
 
 // Cloudinary config
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
-const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
+const CLOUDINARY_CLOUD_NAME = "dk4ha77nw";
 
 export default function SubCategory() {
   const [subcategories, setSubcategories] = useState([]);

@@ -38,7 +38,7 @@ import { createProduct, deleteProduct, getProduct, updateProduct } from "src/ser
 
 // Cloudinary configuration
 const CLOUDINARY_UPLOAD_PRESET = "marketdata";
-const CLOUDINARY_CLOUD_NAME = "de4ks8mkh";
+const CLOUDINARY_CLOUD_NAME = "dk4ha77nw";
 
 export default function ProductData() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
