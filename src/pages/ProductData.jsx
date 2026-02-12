@@ -561,6 +561,7 @@ export default function ProductData() {
               <TableRow>
                 <TableCell>Image</TableCell>
                 <TableCell>Name</TableCell>
+                <TableCell>Description</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Sub Category</TableCell>
                 <TableCell>Stock</TableCell>
@@ -580,6 +581,7 @@ export default function ProductData() {
                       />
                     </TableCell>
                     <TableCell>{p.productName || p.name}</TableCell>
+                     <TableCell>{p.description || p.name}</TableCell>
                     <TableCell>{p.category?.[0]?.name || "-"}</TableCell>
                     <TableCell>{p.subCategory?.[0]?.name || "-"}</TableCell>
                     <TableCell>{p.stock}</TableCell>
