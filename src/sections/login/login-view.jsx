@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Box from '@mui/material/Box';
-import Link from '@mui/material/Link';
+
+// eslint-disable-next-line perfectionist/sort-imports
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 // eslint-disable-next-line no-unused-vars
@@ -20,7 +21,7 @@ import Alert from '@mui/material/Alert';
 
 import { setToken, getToken } from 'src/utils/auth';
 // eslint-disable-next-line perfectionist/sort-imports
-import Logo from 'src/components/logo';
+// import Logo from 'src/components/logo';
 import Iconify from 'src/components/iconify';
 // eslint-disable-next-line perfectionist/sort-imports
 import { bgGradient } from 'src/theme/css';
@@ -79,18 +80,13 @@ const handleSubmit = async (e) => {
         height: 1,
       }}
     >
-      <Logo sx={{ position: "fixed", top: 24, left: 24 }} />
+      {/* <Logo sx={{ position: "fixed", top: 24, left: 24 }} /> */}
 
       <Stack alignItems="center" justifyContent="center" sx={{ height: 1 }}>
         <Card sx={{ p: 5, width: 1, maxWidth: 420 }}>
           <Typography variant="h4">Admin Login</Typography>
 
-          <Typography variant="body2" sx={{ mt: 2, mb: 5 }}>
-            Don’t have an account?
-            <Link variant="subtitle2" sx={{ ml: 0.5 }}>
-              Contact Admin
-            </Link>
-          </Typography>
+          
 
           <Divider sx={{ my: 3 }} />
 

@@ -1,12 +1,12 @@
 // services/analyticsService.js
 
-const API_BASE_URL = 'https://backend.minutos.shop/api';
+const API_BASE_URL = 'https://api.minutos.in/api';
 
 export const analyticsService = {
   getAnalyticsCounts: async () => {
     try {
       // Fetch categories
-      const categoryRes = await fetch(`${API_BASE_URL}/category/getcategories`);
+      const categoryRes = await fetch(`${API_BASE_URL}/category/categories`);
       const categoryData = await categoryRes.json();
       const categoryCount = categoryData?.categories?.length || 0;
 
