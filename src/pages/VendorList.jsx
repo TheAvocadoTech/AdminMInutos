@@ -17,16 +17,13 @@ import {
   Chip,
 } from "@mui/material";
 
-// APIs
 const USER_API = "https://api.minutos.in/api/vendor";
-const UPDATE_VENDOR_STATUS_API =
-  "https://api.minutos.in/api/vendor"; // /:id/status
+const UPDATE_VENDOR_STATUS_API = "https://api.minutos.in/api/vendor";
 
 export default function VendorData() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -37,9 +34,10 @@ export default function VendorData() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(USER_API);
-      setUsers(res.data.vendors || []);
-      setTotalCount(res.data.count || 0);
+      const res = await axios.get(`${USER_API}?limit=1000&page=1`);
+      const vendors = res.data.vendors || [];
+      setUsers(vendors);
+      setTotalCount(res.data.total || vendors.length);
     } catch (err) {
       console.error("Error fetching vendors", err);
     } finally {
@@ -47,44 +45,27 @@ export default function VendorData() {
     }
   };
 
-  // 🔐 ADMIN ONLY STATUS UPDATE
   const handleVendorStatus = async (vendorId, status) => {
     try {
-      const token = localStorage.getItem("token"); // admin JWT
-
       await axios.patch(
         `${UPDATE_VENDOR_STATUS_API}/${vendorId}/status`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { status }
       );
 
       // update UI instantly
       setUsers((prev) =>
-        prev.map((u) =>
-          u._id === vendorId ? { ...u, status } : u
-        )
+        prev.map((u) => (u._id === vendorId ? { ...u, status } : u))
       );
     } catch (err) {
-      console.error(
-        "Status update failed",
-        err.response?.data || err
-      );
-      alert(
-        err.response?.status === 403
-          ? "Admin access only"
-          : "Something went wrong"
-      );
+      console.error("Status update failed", err.response?.data || err);
+      alert("Something went wrong");
     }
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight="bold" mb={3}>
-        Vendor Management (Admin)
+        Vendor Management
       </Typography>
 
       <Paper>
@@ -114,8 +95,7 @@ export default function VendorData() {
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((u) => {
                     const isFinal =
-                      u.status === "ACCEPTED" ||
-                      u.status === "REJECTED";
+                      u.status === "ACCEPTED" || u.status === "REJECTED";
 
                     return (
                       <TableRow key={u._id}>
