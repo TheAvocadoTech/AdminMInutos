@@ -46,6 +46,38 @@ const StatusChip = ({ status }) => {
   return <Chip label={status} color={getColor()} size="small" sx={{ fontWeight: 600, letterSpacing: 0.5 }} />;
 };
 
+/* ✅ NEW: PAYMENT STATUS CHIP */
+const PaymentStatusChip = ({ status }) => {
+  const getColor = () => {
+    switch (status) {
+      case "PAID": return "success";
+      case "PENDING": return "warning";
+      case "FAILED": return "error";
+      case "REFUNDED": return "info";
+      case "NOT_INITIATED": return "default";
+      default: return "default";
+    }
+  };
+  return (
+    <Chip
+      label={status || "N/A"}
+      color={getColor()}
+      size="small"
+      sx={{ fontWeight: 700, fontSize: 11 }}
+    />
+  );
+};
+
+/* ✅ NEW: PAYMENT METHOD LABEL */
+const paymentMethodLabel = (method) => {
+  switch (method) {
+    case "cod": return "💵 Cash on Delivery";
+    case "upi": return "📱 UPI";
+    case "card": return "💳 Card";
+    default: return method || "N/A";
+  }
+};
+
 /* ---------------- INFO SECTION CARD ---------------- */
 const InfoCard = ({ title, icon, children }) => (
   <Paper
@@ -98,6 +130,17 @@ const OrderTableRow = ({ row, selected, handleClick, handleView }) => {
       <TableCell>
         <Typography variant="body2" fontWeight={600}>₹{row.totalAmount?.toFixed(2)}</Typography>
       </TableCell>
+
+      {/* ✅ NEW: Payment column in table */}
+      <TableCell>
+        <Box>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {paymentMethodLabel(row.paymentMethod)}
+          </Typography>
+          <PaymentStatusChip status={row.payment?.status} />
+        </Box>
+      </TableCell>
+
       <TableCell>
         <StatusChip status={row.status} />
       </TableCell>
@@ -132,39 +175,22 @@ const AdminInvoice = ({ order }) => {
     year: "numeric", month: "long", day: "numeric",
   });
   const subtotal = order.items?.reduce((sum, item) => sum + item.price * item.quantity, 0) || order.totalAmount;
-  const tax = 0; // Adjust if you have tax data
+  const tax = 0;
   const grandTotal = order.totalAmount;
 
   return (
-    <Box
-      id="invoice-print-area"
-      sx={{
-        fontFamily: "'Georgia', serif",
-        color: "#1a1a2e",
-        background: "#fff",
-        p: 4,
-        minWidth: 600,
-      }}
-    >
+    <Box id="invoice-print-area" sx={{ fontFamily: "'Georgia', serif", color: "#1a1a2e", background: "#fff", p: 4, minWidth: 600 }}>
       {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 4 }}>
         <Box>
-          <Typography variant="h4" fontWeight={800} sx={{ color: "#1a1a2e", letterSpacing: -0.5 }}>
-            MINUTOS
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Admin Order Invoice
-          </Typography>
+          <Typography variant="h4" fontWeight={800} sx={{ color: "#1a1a2e", letterSpacing: -0.5 }}>MINUTOS</Typography>
+          <Typography variant="caption" color="text.secondary">Admin Order Invoice</Typography>
         </Box>
         <Box sx={{ textAlign: "right" }}>
-          <Typography variant="h6" fontWeight={700} sx={{ color: "#e63946" }}>
-            INVOICE
-          </Typography>
+          <Typography variant="h6" fontWeight={700} sx={{ color: "#e63946" }}>INVOICE</Typography>
           <Typography variant="body2" color="text.secondary">{invoiceNumber}</Typography>
           <Typography variant="body2" color="text.secondary">Date: {invoiceDate}</Typography>
-          <Box sx={{ mt: 1 }}>
-            <StatusChip status={order.status} />
-          </Box>
+          <Box sx={{ mt: 1 }}><StatusChip status={order.status} /></Box>
         </Box>
       </Box>
 
@@ -176,17 +202,13 @@ const AdminInvoice = ({ order }) => {
           <Typography variant="overline" color="text.secondary" fontSize={10}>Vendor / Seller</Typography>
           <Typography variant="body1" fontWeight={700}>{order.vendor?.businessName || "N/A"}</Typography>
           <Typography variant="body2" color="text.secondary">{order.vendor?.email}</Typography>
-          {order.vendor?.phone && (
-            <Typography variant="body2" color="text.secondary">📞 {order.vendor.phone}</Typography>
-          )}
+          {order.vendor?.phone && <Typography variant="body2" color="text.secondary">📞 {order.vendor.phone}</Typography>}
         </Grid>
         <Grid item xs={6}>
           <Typography variant="overline" color="text.secondary" fontSize={10}>Ship To / Customer</Typography>
           <Typography variant="body1" fontWeight={700}>{order.shippingAddress?.name}</Typography>
           <Typography variant="body2" color="text.secondary">{order.shippingAddress?.line1}</Typography>
-          {order.shippingAddress?.line2 && (
-            <Typography variant="body2" color="text.secondary">{order.shippingAddress.line2}</Typography>
-          )}
+          {order.shippingAddress?.line2 && <Typography variant="body2" color="text.secondary">{order.shippingAddress.line2}</Typography>}
           <Typography variant="body2" color="text.secondary">
             {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.pincode}
           </Typography>
@@ -198,42 +220,19 @@ const AdminInvoice = ({ order }) => {
       <Box sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid #e0e0e0", mb: 3 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: "3fr 0.5fr 1fr 1fr", background: "#1a1a2e", color: "#fff", px: 2, py: 1.5 }}>
           {["Item", "Qty", "Unit Price", "Total"].map((h) => (
-            <Typography key={h} variant="caption" fontWeight={700} sx={{ color: "#fff", letterSpacing: 1, textTransform: "uppercase", fontSize: 10 }}>
-              {h}
-            </Typography>
+            <Typography key={h} variant="caption" fontWeight={700} sx={{ color: "#fff", letterSpacing: 1, textTransform: "uppercase", fontSize: 10 }}>{h}</Typography>
           ))}
         </Box>
         {order.items?.map((item, index) => (
-          <Box
-            key={index}
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "3fr 0.5fr 1fr 1fr",
-              px: 2, py: 1.5,
-              borderBottom: index < order.items.length - 1 ? "1px solid #f0f0f0" : "none",
-              background: index % 2 === 0 ? "#fafafa" : "#fff",
-              alignItems: "center",
-            }}
-          >
+          <Box key={index} sx={{ display: "grid", gridTemplateColumns: "3fr 0.5fr 1fr 1fr", px: 2, py: 1.5, borderBottom: index < order.items.length - 1 ? "1px solid #f0f0f0" : "none", background: index % 2 === 0 ? "#fafafa" : "#fff", alignItems: "center" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar
-                src={item.image || item.product?.image || item.product?.images?.[0]}
-                variant="rounded"
-                sx={{
-                  width: 40, height: 40,
-                  bgcolor: "#1a1a2e",
-                  fontSize: 14, fontWeight: 700,
-                  flexShrink: 0,
-                  border: "1px solid #e0e0e0",
-                }}
-              >
+              <Avatar src={item.image || item.product?.image || item.product?.images?.[0]} variant="rounded"
+                sx={{ width: 40, height: 40, bgcolor: "#1a1a2e", fontSize: 14, fontWeight: 700, flexShrink: 0, border: "1px solid #e0e0e0" }}>
                 {item.name?.charAt(0).toUpperCase()}
               </Avatar>
               <Box>
                 <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
-                {item.product?.description && (
-                  <Typography variant="caption" color="text.secondary">{item.product.description}</Typography>
-                )}
+                {item.product?.description && <Typography variant="caption" color="text.secondary">{item.product.description}</Typography>}
                 {item.sku && <Typography variant="caption" color="text.secondary" display="block">SKU: {item.sku}</Typography>}
               </Box>
             </Box>
@@ -262,30 +261,39 @@ const AdminInvoice = ({ order }) => {
             </Box>
           )}
           <Divider sx={{ my: 1 }} />
-          <Box sx={{
-            display: "flex", justifyContent: "space-between", py: 1,
-            background: "#1a1a2e", borderRadius: 1.5, px: 1.5, mt: 1,
-          }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", py: 1, background: "#1a1a2e", borderRadius: 1.5, px: 1.5, mt: 1 }}>
             <Typography variant="body1" fontWeight={800} color="#fff">Grand Total</Typography>
             <Typography variant="body1" fontWeight={800} color="#e63946">₹{grandTotal?.toFixed(2)}</Typography>
           </Box>
         </Box>
       </Box>
 
-      {/* Payment & Order Info */}
+      {/* ✅ UPDATED: Payment info in invoice with Razorpay IDs */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={4}>
           <Typography variant="overline" color="text.secondary" fontSize={10}>Payment Method</Typography>
-          <Typography variant="body2" fontWeight={600}>{order.paymentMethod || "N/A"}</Typography>
+          <Typography variant="body2" fontWeight={600}>{paymentMethodLabel(order.paymentMethod)}</Typography>
         </Grid>
         <Grid item xs={4}>
           <Typography variant="overline" color="text.secondary" fontSize={10}>Payment Status</Typography>
-          <Typography variant="body2" fontWeight={600}>{order.paymentStatus || "N/A"}</Typography>
+          <Typography variant="body2" fontWeight={600}>{order.payment?.status || "N/A"}</Typography>
         </Grid>
         <Grid item xs={4}>
           <Typography variant="overline" color="text.secondary" fontSize={10}>Order ID</Typography>
           <Typography variant="body2" fontWeight={600} color="primary.main">#{order._id}</Typography>
         </Grid>
+        {order.payment?.razorpayPaymentId && (
+          <Grid item xs={12}>
+            <Typography variant="overline" color="text.secondary" fontSize={10}>Razorpay Payment ID</Typography>
+            <Typography variant="body2" fontWeight={600} sx={{ fontFamily: "monospace" }}>{order.payment.razorpayPaymentId}</Typography>
+          </Grid>
+        )}
+        {order.payment?.paidAt && (
+          <Grid item xs={6}>
+            <Typography variant="overline" color="text.secondary" fontSize={10}>Paid At</Typography>
+            <Typography variant="body2" fontWeight={600}>{new Date(order.payment.paidAt).toLocaleString("en-IN")}</Typography>
+          </Grid>
+        )}
       </Grid>
 
       <Box sx={{ height: 1, background: "#e0e0e0", mb: 2 }} />
@@ -309,24 +317,10 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
 
-  const handleView = (order) => {
-    setSelectedOrder(order);
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedOrder(null);
-  };
-
-  const handlePrintInvoice = () => {
-    window.print();
-  };
-
-  const handleOpenInvoice = () => {
-    setOpen(false);
-    setInvoiceOpen(true);
-  };
+  const handleView = (order) => { setSelectedOrder(order); setOpen(true); };
+  const handleClose = () => { setOpen(false); setSelectedOrder(null); };
+  const handlePrintInvoice = () => window.print();
+  const handleOpenInvoice = () => { setOpen(false); setInvoiceOpen(true); };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -390,7 +384,8 @@ export default function OrdersPage() {
                   { id: "vendor", label: "Vendor" },
                   { id: "items", label: "Items" },
                   { id: "totalAmount", label: "Amount" },
-                  { id: "status", label: "Status" },
+                  { id: "payment", label: "Payment" },      // ✅ NEW column
+                  { id: "status", label: "Order Status" },
                   { id: "actions", label: "Actions" },
                 ]}
               />
@@ -398,18 +393,9 @@ export default function OrdersPage() {
                 {dataFiltered
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((row) => (
-                    <OrderTableRow
-                      key={row._id}
-                      row={row}
-                      selected={selected}
-                      handleClick={handleClick}
-                      handleView={handleView}
-                    />
+                    <OrderTableRow key={row._id} row={row} selected={selected} handleClick={handleClick} handleView={handleView} />
                   ))}
-                <TableEmptyRows
-                  height={77}
-                  emptyRows={emptyRows(page, rowsPerPage, orders.length)}
-                />
+                <TableEmptyRows height={77} emptyRows={emptyRows(page, rowsPerPage, orders.length)} />
                 {!dataFiltered.length && !loading && <TableNoData />}
               </TableBody>
             </Table>
@@ -422,10 +408,7 @@ export default function OrdersPage() {
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
           onPageChange={(e, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         />
       </Card>
 
@@ -434,12 +417,8 @@ export default function OrdersPage() {
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Box>
-              <Typography variant="h6" fontWeight={700}>
-                Order Details
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                #{selectedOrder?._id}
-              </Typography>
+              <Typography variant="h6" fontWeight={700}>Order Details</Typography>
+              <Typography variant="caption" color="text.secondary">#{selectedOrder?._id}</Typography>
             </Box>
             {selectedOrder && <StatusChip status={selectedOrder.status} />}
           </Box>
@@ -449,19 +428,14 @@ export default function OrdersPage() {
         {selectedOrder && (
           <DialogContent sx={{ pt: 3 }}>
             <Grid container spacing={2.5} sx={{ mb: 3 }}>
+
               {/* Vendor */}
               <Grid item xs={12} sm={6}>
                 <InfoCard title="Vendor Details" icon="🏪">
                   <Typography variant="body1" fontWeight={700}>{selectedOrder.vendor?.businessName}</Typography>
                   <Typography variant="body2" color="text.secondary">{selectedOrder.vendor?.email}</Typography>
-                  {selectedOrder.vendor?.phone && (
-                    <Typography variant="body2" color="text.secondary">📞 {selectedOrder.vendor.phone}</Typography>
-                  )}
-                  {selectedOrder.vendor?.address && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      📍 {selectedOrder.vendor.address}
-                    </Typography>
-                  )}
+                  {selectedOrder.vendor?.phone && <Typography variant="body2" color="text.secondary">📞 {selectedOrder.vendor.phone}</Typography>}
+                  {selectedOrder.vendor?.address && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>📍 {selectedOrder.vendor.address}</Typography>}
                 </InfoCard>
               </Grid>
 
@@ -470,15 +444,11 @@ export default function OrdersPage() {
                 <InfoCard title="Shipping Address" icon="📦">
                   <Typography variant="body1" fontWeight={700}>{selectedOrder.shippingAddress?.name}</Typography>
                   <Typography variant="body2" color="text.secondary">{selectedOrder.shippingAddress?.line1}</Typography>
-                  {selectedOrder.shippingAddress?.line2 && (
-                    <Typography variant="body2" color="text.secondary">{selectedOrder.shippingAddress.line2}</Typography>
-                  )}
+                  {selectedOrder.shippingAddress?.line2 && <Typography variant="body2" color="text.secondary">{selectedOrder.shippingAddress.line2}</Typography>}
                   <Typography variant="body2" color="text.secondary">
                     {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.pincode}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    📞 {selectedOrder.shippingAddress?.phone}
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">📞 {selectedOrder.shippingAddress?.phone}</Typography>
                 </InfoCard>
               </Grid>
 
@@ -488,29 +458,57 @@ export default function OrdersPage() {
                   <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">Order ID</Typography>
-                      <Typography variant="body2" fontWeight={600} color="primary.main">
-                        #{selectedOrder._id.slice(-8).toUpperCase()}
-                      </Typography>
+                      <Typography variant="body2" fontWeight={600} color="primary.main">#{selectedOrder._id.slice(-8).toUpperCase()}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" color="text.secondary">Placed On</Typography>
-                      <Typography variant="body2" fontWeight={600}>
-                        {new Date(selectedOrder.createdAt).toLocaleString("en-IN")}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Payment Method</Typography>
-                      <Typography variant="body2" fontWeight={600}>{selectedOrder.paymentMethod || "N/A"}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Payment Status</Typography>
-                      <Typography variant="body2" fontWeight={600}>{selectedOrder.paymentStatus || "N/A"}</Typography>
+                      <Typography variant="body2" fontWeight={600}>{new Date(selectedOrder.createdAt).toLocaleString("en-IN")}</Typography>
                     </Box>
                     {selectedOrder.updatedAt && (
                       <Box sx={{ gridColumn: "1/-1" }}>
                         <Typography variant="caption" color="text.secondary">Last Updated</Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          {new Date(selectedOrder.updatedAt).toLocaleString("en-IN")}
+                        <Typography variant="body2" fontWeight={600}>{new Date(selectedOrder.updatedAt).toLocaleString("en-IN")}</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </InfoCard>
+              </Grid>
+
+              {/* ✅ NEW: Dedicated Payment Details card */}
+              <Grid item xs={12} sm={6}>
+                <InfoCard title="Payment Details" icon="💳">
+                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Method</Typography>
+                      <Typography variant="body2" fontWeight={600}>{paymentMethodLabel(selectedOrder.paymentMethod)}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Status</Typography>
+                      <Box sx={{ mt: 0.5 }}>
+                        <PaymentStatusChip status={selectedOrder.payment?.status} />
+                      </Box>
+                    </Box>
+                    {selectedOrder.payment?.paidAt && (
+                      <Box sx={{ gridColumn: "1/-1" }}>
+                        <Typography variant="caption" color="text.secondary">Paid At</Typography>
+                        <Typography variant="body2" fontWeight={600}>{new Date(selectedOrder.payment.paidAt).toLocaleString("en-IN")}</Typography>
+                      </Box>
+                    )}
+                    {selectedOrder.payment?.razorpayPaymentId && (
+                      <Box sx={{ gridColumn: "1/-1" }}>
+                        <Typography variant="caption" color="text.secondary">Razorpay Payment ID</Typography>
+                        <Typography variant="body2" fontWeight={600}
+                          sx={{ fontFamily: "monospace", fontSize: 11, wordBreak: "break-all", bgcolor: "#f5f5f5", px: 1, py: 0.5, borderRadius: 1 }}>
+                          {selectedOrder.payment.razorpayPaymentId}
+                        </Typography>
+                      </Box>
+                    )}
+                    {selectedOrder.payment?.razorpayOrderId && (
+                      <Box sx={{ gridColumn: "1/-1" }}>
+                        <Typography variant="caption" color="text.secondary">Razorpay Order ID</Typography>
+                        <Typography variant="body2" fontWeight={600}
+                          sx={{ fontFamily: "monospace", fontSize: 11, wordBreak: "break-all", bgcolor: "#f5f5f5", px: 1, py: 0.5, borderRadius: 1 }}>
+                          {selectedOrder.payment.razorpayOrderId}
                         </Typography>
                       </Box>
                     )}
@@ -541,9 +539,7 @@ export default function OrdersPage() {
                   </Box>
                   {selectedOrder.deliveryNotes && (
                     <Box sx={{ mt: 1, p: 1, background: "#fff8e1", borderRadius: 1 }}>
-                      <Typography variant="caption" color="warning.dark">
-                        📝 Note: {selectedOrder.deliveryNotes}
-                      </Typography>
+                      <Typography variant="caption" color="warning.dark">📝 Note: {selectedOrder.deliveryNotes}</Typography>
                     </Box>
                   )}
                 </InfoCard>
@@ -555,81 +551,38 @@ export default function OrdersPage() {
               🛒 Purchased Items ({selectedOrder.items?.length})
             </Typography>
             <Box sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider", mb: 3 }}>
-              <Box sx={{
-                display: "grid",
-                gridTemplateColumns: "2fr 0.5fr 1fr 1fr",
-                px: 2, py: 1,
-                background: "grey.100",
-                bgcolor: "#f5f5f5",
-              }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: "2fr 0.5fr 1fr 1fr", px: 2, py: 1, bgcolor: "#f5f5f5" }}>
                 {["Product", "Qty", "Unit Price", "Total"].map((h) => (
-                  <Typography key={h} variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 10 }}>
-                    {h}
-                  </Typography>
+                  <Typography key={h} variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 10 }}>{h}</Typography>
                 ))}
               </Box>
               {selectedOrder.items?.map((item, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 0.5fr 1fr 1fr",
-                    px: 2, py: 1.5,
-                    borderTop: "1px solid",
-                    borderColor: "divider",
-                    alignItems: "center",
-                    background: index % 2 === 0 ? "transparent" : "#fafafa",
-                  }}
-                >
+                <Box key={index} sx={{ display: "grid", gridTemplateColumns: "2fr 0.5fr 1fr 1fr", px: 2, py: 1.5, borderTop: "1px solid", borderColor: "divider", alignItems: "center", background: index % 2 === 0 ? "transparent" : "#fafafa" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Avatar
-                      src={item.image || item.product?.image || item.product?.images?.[0]}
-                      variant="rounded"
-                      sx={{
-                        width: 44,
-                        height: 44,
-                        bgcolor: "primary.light",
-                        fontSize: 16,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    >
+                    <Avatar src={item.image || item.product?.image || item.product?.images?.[0]} variant="rounded"
+                      sx={{ width: 44, height: 44, bgcolor: "primary.light", fontSize: 16, fontWeight: 700, flexShrink: 0, border: "1px solid", borderColor: "divider" }}>
                       {item.name?.charAt(0).toUpperCase()}
                     </Avatar>
                     <Box>
                       <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
-                      {item.product?.description && (
-                        <Typography variant="caption" color="text.secondary">{item.product.description}</Typography>
-                      )}
-                      {item.sku && (
-                        <Typography variant="caption" color="text.disabled" display="block">SKU: {item.sku}</Typography>
-                      )}
-                      {item.variant && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Variant: {item.variant}
-                        </Typography>
-                      )}
+                      {item.product?.description && <Typography variant="caption" color="text.secondary">{item.product.description}</Typography>}
+                      {item.sku && <Typography variant="caption" color="text.disabled" display="block">SKU: {item.sku}</Typography>}
+                      {item.variant && <Typography variant="caption" color="text.secondary" display="block">Variant: {item.variant}</Typography>}
                     </Box>
                   </Box>
                   <Typography variant="body2">{item.quantity}</Typography>
                   <Typography variant="body2">₹{item.price?.toFixed(2)}</Typography>
-                  <Typography variant="body2" fontWeight={700}>
-                    ₹{(item.price * item.quantity).toFixed(2)}
-                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>₹{(item.price * item.quantity).toFixed(2)}</Typography>
                 </Box>
               ))}
             </Box>
 
-            {/* Totals Summary */}
+            {/* Totals */}
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
               <Box sx={{ width: 260 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
                   <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                  <Typography variant="body2">
-                    ₹{selectedOrder.items?.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)}
-                  </Typography>
+                  <Typography variant="body2">₹{selectedOrder.items?.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)}</Typography>
                 </Box>
                 {selectedOrder.discount > 0 && (
                   <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
@@ -644,19 +597,13 @@ export default function OrdersPage() {
                   </Box>
                 )}
                 <Divider sx={{ my: 1 }} />
-                <Box sx={{
-                  display: "flex", justifyContent: "space-between", py: 1,
-                  px: 1.5, background: "#1a1a2e", borderRadius: 1.5,
-                }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", py: 1, px: 1.5, background: "#1a1a2e", borderRadius: 1.5 }}>
                   <Typography variant="body1" fontWeight={800} color="#fff">Grand Total</Typography>
-                  <Typography variant="body1" fontWeight={800} sx={{ color: "#e63946" }}>
-                    ₹{selectedOrder.totalAmount?.toFixed(2)}
-                  </Typography>
+                  <Typography variant="body1" fontWeight={800} sx={{ color: "#e63946" }}>₹{selectedOrder.totalAmount?.toFixed(2)}</Typography>
                 </Box>
               </Box>
             </Box>
 
-            {/* Notes */}
             {selectedOrder.notes && (
               <Box sx={{ mt: 2, p: 2, background: "#fff8e1", borderRadius: 2 }}>
                 <Typography variant="subtitle2" color="warning.dark" sx={{ mb: 0.5 }}>📝 Order Notes</Typography>
@@ -669,9 +616,7 @@ export default function OrdersPage() {
         <Divider />
         <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
           <Button onClick={handleClose} variant="outlined" color="inherit">Close</Button>
-          <Button onClick={handleOpenInvoice} variant="contained" color="primary">
-            🖨️ Generate Invoice
-          </Button>
+          <Button onClick={handleOpenInvoice} variant="contained" color="primary">🖨️ Generate Invoice</Button>
           <Button variant="contained" color="success">Order Done</Button>
         </DialogActions>
       </Dialog>
@@ -683,9 +628,7 @@ export default function OrdersPage() {
             <Typography variant="h6" fontWeight={700}>Admin Invoice</Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button variant="outlined" size="small" onClick={() => setInvoiceOpen(false)}>← Back</Button>
-              <Button variant="contained" size="small" onClick={handlePrintInvoice} sx={{ background: "#1a1a2e" }}>
-                🖨️ Print / Save PDF
-              </Button>
+              <Button variant="contained" size="small" onClick={handlePrintInvoice} sx={{ background: "#1a1a2e" }}>🖨️ Print / Save PDF</Button>
             </Box>
           </Box>
         </DialogTitle>
